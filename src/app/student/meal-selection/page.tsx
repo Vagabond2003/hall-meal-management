@@ -12,6 +12,7 @@ import {
   Clock,
   Lock,
   AlertCircle,
+  Calendar
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -23,6 +24,7 @@ interface Meal {
   price: number;
   meal_type: string;
   date: string | null;
+  hasMenu?: boolean;
 }
 
 const getMealIcon = (name: string) => {
@@ -170,6 +172,20 @@ export default function MealSelectionPage() {
       {/* Regular Meals */}
       <div>
         <h2 className="text-base font-heading font-semibold text-text-primary mb-3">Regular Meals</h2>
+        
+        {regularMeals.every(m => !m.hasMenu) && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex items-center gap-3 p-4 mb-4 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-600 dark:text-amber-500"
+          >
+            <Calendar className="w-5 h-5 flex-shrink-0" />
+            <p className="text-sm font-medium">
+              No menu has been set for today. Check back later.
+            </p>
+          </motion.div>
+        )}
+
         {regularMeals.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-12 text-text-secondary">
             <UtensilsCrossed className="w-10 h-10 opacity-30" />
@@ -179,17 +195,34 @@ export default function MealSelectionPage() {
           <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-3">
             {regularMeals.map((meal) => (
               <motion.div key={meal.id} variants={itemVariants}>
-                <MealToggleCard
-                  mealId={meal.id}
-                  name={meal.name}
-                  icon={getMealIcon(meal.name)}
-                  description={meal.description ?? "Freshly prepared daily meal"}
-                  price={Number(meal.price)}
-                  initialSelected={selectedIds.has(meal.id)}
-                  date={today}
-                  disabled={!mealSelectionEnabled || isPastDeadline}
-                  onToggle={handleToggle}
-                />
+                {!meal.hasMenu ? (
+                  <div className="flex items-center justify-between p-4 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-surface/50 opacity-60">
+                    <div className="flex items-center gap-3">
+                      <div className="text-text-secondary">{getMealIcon(meal.name)}</div>
+                      <div>
+                        <h3 className="font-heading font-semibold text-text-primary text-sm">{meal.name}</h3>
+                        <p className="text-xs text-text-secondary flex items-center gap-1 mt-0.5">
+                          <Calendar className="w-3 h-3" /> Menu not set yet
+                        </p>
+                      </div>
+                    </div>
+                    <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 rounded-full cursor-not-allowed opacity-50 relative">
+                      <div className="absolute left-1 top-1 w-4 h-4 rounded-full bg-white transition-all" />
+                    </div>
+                  </div>
+                ) : (
+                  <MealToggleCard
+                    mealId={meal.id}
+                    name={meal.name}
+                    icon={getMealIcon(meal.name)}
+                    description={meal.description ?? "Freshly prepared daily meal"}
+                    price={Number(meal.price)}
+                    initialSelected={selectedIds.has(meal.id)}
+                    date={today}
+                    disabled={!mealSelectionEnabled || isPastDeadline}
+                    onToggle={handleToggle}
+                  />
+                )}
               </motion.div>
             ))}
           </motion.div>

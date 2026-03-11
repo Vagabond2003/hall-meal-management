@@ -9,6 +9,7 @@ import { toast } from "sonner";
 interface Selection {
   id: string;
   date: string;
+  price?: number;
   meals: { name: string; description: string | null; price: number; meal_type: string } | null;
 }
 
@@ -51,7 +52,7 @@ export default function MealHistoryPage() {
 
   const monthlyTotal = selections.reduce((acc, s) => {
     const meal = Array.isArray(s.meals) ? s.meals[0] : s.meals;
-    return acc + Number(meal?.price ?? 0);
+    return acc + Number(s.price ?? meal?.price ?? 0);
   }, 0);
 
   const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i);
@@ -133,8 +134,7 @@ export default function MealHistoryPage() {
                     {isSpecial && <Star className="w-3.5 h-3.5 text-accent-gold flex-shrink-0" />}
                     <span className="font-medium text-text-primary truncate">{meal?.name ?? "—"}</span>
                   </div>
-                  <span className="hidden sm:block text-text-secondary truncate">{meal?.description ?? "—"}</span>
-                  <span className="text-right font-semibold text-text-primary">৳{Number(meal?.price ?? 0).toFixed(0)}</span>
+                  <span className="text-right font-semibold text-text-primary">৳{Number(s.price ?? meal?.price ?? 0).toFixed(0)}</span>
                 </motion.div>
               );
             })}

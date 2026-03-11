@@ -52,8 +52,26 @@ export default async function StudentDashboardPage() {
   const todaySelections = allSelections.filter((s) => s.date === today);
   const selectedMealIds = new Set(todaySelections.map((s) => s.meal_id));
 
-  // Regular meals (Breakfast, Lunch, Dinner)
-  const regularMeals = meals.filter((m) => m.meal_type === "regular");
+  // Regular meals mapped with weekly_menus
+  const dayOfWeek = now.getDay();
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - dayOfWeek);
+  const weekStartStr = format(weekStart, "yyyy-MM-dd");
+
+  const { data: todayMenus } = await supabaseAdmin
+    .from("weekly_menus")
+    .select("meal_slot, items, price")
+    .eq("week_start_date", weekStartStr)
+    .eq("day_of_week", dayOfWeek)
+    .eq("is_active", true);
+
+  const regularMeals = meals.filter((m) => m.meal_type === "regular").map((m) => {
+    const slot = todayMenus?.find(tm => tm.meal_slot.toLowerCase() === m.name.toLowerCase());
+    if (slot) {
+      return { ...m, description: slot.items, price: slot.price, hasMenu: true };
+    }
+    return { ...m, hasMenu: false };
+  });
 
   // Special meals for today or upcoming (within 7 days)
   const upcomingDate = format(new Date(now.getTime() + 7 * 86400000), "yyyy-MM-dd");

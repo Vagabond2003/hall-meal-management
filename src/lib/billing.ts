@@ -8,6 +8,7 @@ export async function calculateMonthlyBill(studentId: string, month: number, yea
   const { data: selections, error: fetchError } = await supabaseAdmin
     .from("meal_selections")
     .select(`
+      price,
       meals ( price )
     `)
     .eq("student_id", studentId)
@@ -17,7 +18,7 @@ export async function calculateMonthlyBill(studentId: string, month: number, yea
 
   let totalCost = 0;
   if (selections) {
-    totalCost = selections.reduce((sum, sel: any) => sum + Number(sel.meals?.price || 0), 0);
+    totalCost = selections.reduce((sum, sel: any) => sum + Number(sel.price || sel.meals?.price || 0), 0);
   }
 
   // Fetch existing billing to preserve is_paid status if it exists

@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 
   let query = supabaseAdmin
     .from("meal_selections")
-    .select(`id, date, is_selected, student_id, meal_id, meals ( id, name, description, price, meal_type, date )`)
+    .select(`id, date, is_selected, student_id, meal_id, price, meals ( id, name, description, price, meal_type, date )`)
     .eq("student_id", session.user.id)
     .eq("is_selected", true);
 
@@ -78,7 +78,40 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Today's selection deadline has passed" }, { status: 403 });
   }
 
-  // Upsert the selection
+  // Securely determine the price
+  let mealPrice = 0;
+  
+  const { data: mealData } = await supabaseAdmin
+    .from("meals")
+    .select("name, price, meal_type")
+    .eq("id", meal_id)
+    .single();
+
+  if (mealData) {
+    if (mealData.meal_type === "regular") {
+      const targetDate = new Date(date);
+      const dayOfWeek = targetDate.getDay();
+      const weekStart = new Date(targetDate);
+      weekStart.setDate(targetDate.getDate() - dayOfWeek);
+      const weekStartStr = weekStart.toISOString().split("T")[0];
+
+      const { data: weeklyMenu } = await supabaseAdmin
+        .from("weekly_menus")
+        .select("price")
+        .eq("week_start_date", weekStartStr)
+        .eq("day_of_week", dayOfWeek)
+        .ilike("meal_slot", mealData.name)
+        .single();
+      
+      if (weeklyMenu) {
+        mealPrice = weeklyMenu.price;
+      }
+    } else {
+      mealPrice = mealData.price;
+    }
+  }
+
+  // Upsert the selection with the price
   const { error } = await supabaseAdmin
     .from("meal_selections")
     .upsert(
@@ -87,6 +120,7 @@ export async function POST(request: NextRequest) {
         meal_id,
         date,
         is_selected: is_selected ?? true,
+        price: mealPrice,
       },
       { onConflict: "student_id,meal_id,date" }
     );
