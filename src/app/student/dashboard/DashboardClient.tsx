@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { StatCard } from "@/components/shared/StatCard";
 import { MealToggleCard } from "@/components/shared/MealToggleCard";
@@ -81,6 +82,47 @@ export function DashboardClient({
   isPastDeadline,
   currentMonthName,
 }: DashboardClientProps) {
+  const [regularMealsState, setRegularMealsState] = useState<Meal[]>(regularMeals);
+  const [selectedMealIdsState, setSelectedMealIdsState] = useState<string[]>(selectedMealIds);
+  const [localToday, setLocalToday] = useState<string>(today);
+
+  useEffect(() => {
+    const fetchLocalData = async () => {
+      const todayObj = new Date();
+      const dateStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, "0")}-${String(todayObj.getDate()).padStart(2, "0")}`;
+      setLocalToday(dateStr);
+
+      try {
+        const [menuRes, selRes] = await Promise.all([
+          fetch(`/api/student/daily-menu?date=${dateStr}`),
+          fetch(`/api/student/selections?date=${dateStr}`),
+        ]);
+
+        if (menuRes.ok) {
+          const { menus } = await menuRes.json();
+          setRegularMealsState((prev) =>
+            prev.map((m) => {
+              const slot = menus?.find((tm: any) => tm.meal_slot.toLowerCase() === m.name.toLowerCase());
+              if (slot) {
+                return { ...m, description: slot.items, price: slot.price, hasMenu: true };
+              }
+              return { ...m, hasMenu: false };
+            })
+          );
+        }
+
+        if (selRes.ok) {
+          const selData = await selRes.json();
+          const selected = (selData.selections ?? []).map((s: any) => s.meal_id);
+          setSelectedMealIdsState(selected);
+        }
+      } catch (err) {
+        console.error("Failed to fetch local data", err);
+      }
+    };
+    fetchLocalData();
+  }, []);
+
   return (
     <div className="space-y-8">
       {/* Welcome Banner */}
@@ -208,7 +250,7 @@ export function DashboardClient({
         )}
 
         {/* Regular meal toggles */}
-        {regularMeals.length === 0 ? (
+        {regularMealsState.length === 0 ? (
           <div className="text-center py-8 text-text-secondary text-sm">
             No regular meals configured yet. Contact your admin.
           </div>
@@ -220,7 +262,7 @@ export function DashboardClient({
             className="space-y-3"
           >
             {/* NO MENU SET ENTIRE DAY BANNER */}
-            {regularMeals.every(m => !m.hasMenu) && (
+            {regularMealsState.every(m => !m.hasMenu) && (
               <motion.div
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -233,7 +275,7 @@ export function DashboardClient({
               </motion.div>
             )}
 
-            {regularMeals.map((meal) => (
+            {regularMealsState.map((meal) => (
               <motion.div key={meal.id} variants={itemVariants}>
                 {!meal.hasMenu ? (
                   <div className="flex items-center justify-between p-4 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-surface/50 opacity-60">
@@ -258,8 +300,8 @@ export function DashboardClient({
                     icon={getMealIcon(meal.name)}
                     description={meal.description ?? ""}
                     price={Number(meal.price)}
-                    initialSelected={selectedMealIds.includes(meal.id)}
-                    date={today}
+                    initialSelected={selectedMealIdsState.includes(meal.id)}
+                    date={localToday}
                     disabled={!mealSelectionEnabled || isPastDeadline}
                   />
                 )}

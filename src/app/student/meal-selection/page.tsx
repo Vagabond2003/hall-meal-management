@@ -52,15 +52,19 @@ export default function MealSelectionPage() {
   const [mealSelectionEnabled, setMealSelectionEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
 
-  const today = format(new Date(), "yyyy-MM-dd");
+  const [todayStr, setTodayStr] = useState("");
   const currentMonth = format(new Date(), "MMMM yyyy");
 
   useEffect(() => {
     const fetchData = async () => {
       try {
+        const todayObj = new Date();
+        const dateStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, "0")}-${String(todayObj.getDate()).padStart(2, "0")}`;
+        setTodayStr(dateStr);
+
         const [mealsRes, selRes] = await Promise.all([
-          fetch("/api/student/meals"),
-          fetch(`/api/student/selections?date=${today}`),
+          fetch(`/api/student/meals?date=${dateStr}`),
+          fetch(`/api/student/selections?date=${dateStr}`),
         ]);
 
         const mealsData = await mealsRes.json();
@@ -91,7 +95,7 @@ export default function MealSelectionPage() {
     };
 
     fetchData();
-  }, [today]);
+  }, []);
 
   const handleToggle = (mealId: string, selected: boolean) => {
     setSelectedIds((prev) => {
@@ -218,7 +222,7 @@ export default function MealSelectionPage() {
                     description={meal.description ?? "Freshly prepared daily meal"}
                     price={Number(meal.price)}
                     initialSelected={selectedIds.has(meal.id)}
-                    date={today}
+                    date={todayStr}
                     disabled={!mealSelectionEnabled || isPastDeadline}
                     onToggle={handleToggle}
                   />
@@ -249,7 +253,7 @@ export default function MealSelectionPage() {
                   description={meal.description ?? ""}
                   price={Number(meal.price)}
                   initialSelected={selectedIds.has(meal.id)}
-                  date={meal.date ?? today}
+                  date={meal.date ?? todayStr}
                   disabled={!mealSelectionEnabled}
                   isSpecial
                   onToggle={handleToggle}

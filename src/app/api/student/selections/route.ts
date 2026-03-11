@@ -89,7 +89,8 @@ export async function POST(request: NextRequest) {
 
   if (mealData) {
     if (mealData.meal_type === "regular") {
-      const targetDate = new Date(date);
+      const [year, month, day] = date.split('-').map(Number);
+      const targetDate = new Date(year, month - 1, day);
       const dayOfWeek = targetDate.getDay();
       const weekStart = new Date(targetDate);
       weekStart.setDate(targetDate.getDate() - dayOfWeek);

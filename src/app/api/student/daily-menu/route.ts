@@ -11,7 +11,8 @@ export async function GET(request: Request) {
   }
 
   try {
-    const date = new Date(dateParam);
+    const [year, month, day] = dateParam.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
     const dayOfWeek = date.getDay(); // 0-6
 
     // Find the Sunday of the week
