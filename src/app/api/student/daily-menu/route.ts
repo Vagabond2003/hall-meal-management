@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { startOfDay } from "date-fns";
+import { format, startOfDay } from "date-fns";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     // Find the Sunday of the week
     const weekStart = new Date(date);
     weekStart.setDate(date.getDate() - dayOfWeek);
-    const weekStartStr = weekStart.toISOString().split("T")[0];
+    const weekStartStr = format(weekStart, "yyyy-MM-dd");
 
     // Fetch the menu for that specific day
     const { data: menus, error } = await supabaseAdmin

@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
       const dayOfWeek = targetDate.getDay();
       const weekStart = new Date(targetDate);
       weekStart.setDate(targetDate.getDate() - dayOfWeek);
-      const weekStartStr = weekStart.toISOString().split("T")[0];
+      const weekStartStr = format(weekStart, "yyyy-MM-dd");
 
       const { data: weeklyMenu } = await supabaseAdmin
         .from("weekly_menus")

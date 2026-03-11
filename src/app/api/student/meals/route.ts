@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
+import { format } from "date-fns";
 
 // GET /api/student/meals — fetch all active meals + settings deadline
 export async function GET() {
@@ -24,7 +25,7 @@ export async function GET() {
   const dayOfWeek = now.getDay();
   const weekStart = new Date(now);
   weekStart.setDate(now.getDate() - dayOfWeek);
-  const weekStartStr = weekStart.toISOString().split("T")[0];
+  const weekStartStr = format(weekStart, "yyyy-MM-dd");
 
   const { data: todayMenus } = await supabaseAdmin
     .from("weekly_menus")
