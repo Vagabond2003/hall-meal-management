@@ -1,0 +1,159 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { Receipt, AlertCircle, CheckCircle2, TrendingDown } from "lucide-react";
+import { toast } from "sonner";
+
+const MONTH_NAMES = [
+  "January","February","March","April","May","June",
+  "July","August","September","October","November","December",
+];
+
+interface BillingRecord {
+  id: string;
+  month: number;
+  year: number;
+  total_cost: number;
+  is_paid: boolean;
+}
+
+const containerVariants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.07 } },
+};
+const rowVariants = {
+  hidden: { opacity: 0, y: 8 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" as const } },
+};
+
+export default function BillingSummaryPage() {
+  const [billing, setBilling] = useState<BillingRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchBilling = async () => {
+      try {
+        const res = await fetch("/api/student/billing");
+        const data = await res.json();
+        setBilling(data.billing ?? []);
+      } catch {
+        toast.error("Failed to load billing records");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchBilling();
+  }, []);
+
+  const totalPaid = billing.filter((b) => b.is_paid).reduce((acc, b) => acc + Number(b.total_cost), 0);
+  const totalUnpaid = billing.filter((b) => !b.is_paid).reduce((acc, b) => acc + Number(b.total_cost), 0);
+  const avgMonthly = billing.length > 0 ? billing.reduce((acc, b) => acc + Number(b.total_cost), 0) / billing.length : 0;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
+      className="space-y-6"
+    >
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-heading font-bold text-text-primary">Billing Summary</h1>
+        <p className="mt-1 text-text-secondary text-sm">Your monthly meal costs and payment status.</p>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="bg-danger/8 border border-danger/20 rounded-2xl p-5"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <AlertCircle className="w-4 h-4 text-danger" />
+            <p className="text-xs font-semibold text-danger uppercase tracking-wider">Outstanding Balance</p>
+          </div>
+          <p className="text-3xl font-heading font-bold text-danger">৳{totalUnpaid.toFixed(2)}</p>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-success/8 border border-success/20 rounded-2xl p-5"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <CheckCircle2 className="w-4 h-4 text-success" />
+            <p className="text-xs font-semibold text-success uppercase tracking-wider">Total Paid</p>
+          </div>
+          <p className="text-3xl font-heading font-bold text-success">৳{totalPaid.toFixed(2)}</p>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="bg-primary/8 border border-primary/20 rounded-2xl p-5"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <TrendingDown className="w-4 h-4 text-primary" />
+            <p className="text-xs font-semibold text-primary uppercase tracking-wider">Avg Monthly</p>
+          </div>
+          <p className="text-3xl font-heading font-bold text-primary">৳{avgMonthly.toFixed(2)}</p>
+        </motion.div>
+      </div>
+
+      {/* Billing Table */}
+      {loading ? (
+        <div className="space-y-2">
+          {[1,2,3].map((i) => (
+            <div key={i} className="h-14 bg-surface-secondary rounded-xl animate-pulse" />
+          ))}
+        </div>
+      ) : billing.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 py-16 text-text-secondary">
+          <Receipt className="w-12 h-12 opacity-20" />
+          <p className="text-sm font-medium">No billing records found.</p>
+          <p className="text-xs text-center max-w-xs">Billing records are generated monthly. Check back after your first complete month.</p>
+        </div>
+      ) : (
+        <div className="bg-surface rounded-2xl border border-border/50 shadow-sm overflow-hidden">
+          {/* Table Header */}
+          <div className="grid grid-cols-4 gap-4 px-6 py-3 bg-surface-secondary text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-border">
+            <span>Month</span>
+            <span>Year</span>
+            <span>Total Cost</span>
+            <span className="text-right">Status</span>
+          </div>
+          {/* Table Rows */}
+          <motion.div variants={containerVariants} initial="hidden" animate="show">
+            {billing.map((record, i) => (
+              <motion.div
+                key={record.id}
+                variants={rowVariants}
+                className={`grid grid-cols-4 gap-4 px-6 py-4 border-b border-border/40 last:border-0 items-center text-sm hover:bg-primary-muted/30 transition-colors ${i % 2 === 1 ? "bg-surface-secondary/30" : ""}`}
+              >
+                <span className="font-medium text-text-primary">{MONTH_NAMES[record.month - 1]}</span>
+                <span className="text-text-secondary">{record.year}</span>
+                <span className="font-semibold text-text-primary">৳{Number(record.total_cost).toFixed(2)}</span>
+                <div className="flex justify-end">
+                  {record.is_paid ? (
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold bg-success/10 text-success px-3 py-1 rounded-full">
+                      <CheckCircle2 className="w-3 h-3" /> Paid
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold bg-warning/10 text-warning px-3 py-1 rounded-full">
+                      <AlertCircle className="w-3 h-3" /> Unpaid
+                    </span>
+                  )}
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      )}
+    </motion.div>
+  );
+}

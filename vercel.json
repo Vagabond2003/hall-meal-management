@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/meal-carryover",
+      "schedule": "58 23 * * *"
+    },
+    {
+      "path": "/api/cron/month-reset",
+      "schedule": "0 0 1 * *"
+    }
+  ]
+}
