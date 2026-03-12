@@ -34,7 +34,10 @@ export async function GET(
         id,
         date,
         is_selected,
-        meals ( id, name, description, price, meal_type )
+        meal_id,
+        weekly_menu_id,
+        price,
+        weekly_menus ( id, week_start_date, day_of_week, meal_slot, items, price )
       `)
       .eq("student_id", id)
       .eq("is_selected", true)

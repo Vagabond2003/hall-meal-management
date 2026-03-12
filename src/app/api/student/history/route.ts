@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       student_id,
       meal_id,
       weekly_menu_id,
-      meals ( id, name, description, price, meal_type ),
+      price,
       weekly_menus ( id, week_start_date, day_of_week, meal_slot, items, price )
     `)
     .eq("student_id", session.user.id)

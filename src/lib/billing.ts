@@ -9,7 +9,6 @@ export async function calculateMonthlyBill(studentId: string, month: number, yea
     .from("meal_selections")
     .select(`
       price,
-      meals ( price ),
       weekly_menus ( price )
     `)
     .eq("student_id", studentId)
@@ -24,7 +23,7 @@ export async function calculateMonthlyBill(studentId: string, month: number, yea
   let totalCost = 0;
   if (selections) {
     totalCost = selections.reduce(
-      (sum, sel: any) => sum + Number(sel.price ?? sel.weekly_menus?.price ?? sel.meals?.price ?? 0),
+      (sum, sel: any) => sum + Number(sel.price ?? sel.weekly_menus?.price ?? 0),
       0
     );
   }

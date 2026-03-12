@@ -23,7 +23,7 @@ export async function GET(
     const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
     const endDate = `${year}-${String(month).padStart(2, '0')}-31`;
 
-    const { data: selectionsData } = await supabaseAdmin
+    const { data: selectionsData, error: selectionsError } = await supabaseAdmin
       .from("meal_selections")
       .select(`
         id,
@@ -31,12 +31,7 @@ export async function GET(
         is_selected,
         meal_id,
         weekly_menu_id,
-        meals (
-          id,
-          name,
-          description,
-          price
-        ),
+        price,
         weekly_menus (
           id,
           week_start_date,
@@ -52,18 +47,20 @@ export async function GET(
       .lte("date", endDate)
       .order("date", { ascending: false });
 
+    if (selectionsError) {
+      console.error("[Admin Student Detail] Error fetching month selections:", selectionsError);
+    }
+
     // Format selections
     const formattedSelections = selectionsData?.map(s => {
-      const meals: any = s.meals;
       const weeklyMenu: any = (s as any).weekly_menus;
-      const mealRecord = Array.isArray(meals) ? meals[0] : meals;
       const weeklyRecord = Array.isArray(weeklyMenu) ? weeklyMenu[0] : weeklyMenu;
       return {
         id: s.id,
         date: s.date,
-        meal_name: weeklyRecord?.meal_slot ?? mealRecord?.name ?? "Unknown",
-        items: weeklyRecord?.items ?? mealRecord?.description ?? null,
-        cost: (s as any).price ?? weeklyRecord?.price ?? mealRecord?.price ?? 0,
+        meal_name: weeklyRecord?.meal_slot ?? "Unknown",
+        items: weeklyRecord?.items ?? null,
+        cost: (s as any).price ?? weeklyRecord?.price ?? 0,
         is_selected: s.is_selected,
       };
     }) || [];
@@ -87,12 +84,7 @@ export async function GET(
         is_selected,
         meal_id,
         weekly_menu_id,
-        meals (
-          id,
-          name,
-          description,
-          price
-        ),
+        price,
         weekly_menus (
           id,
           week_start_date,
@@ -111,16 +103,14 @@ export async function GET(
     }
 
     const formattedTodaySelections = todaySelectionsData?.map(s => {
-      const meals: any = s.meals;
       const weeklyMenu: any = (s as any).weekly_menus;
-      const mealRecord = Array.isArray(meals) ? meals[0] : meals;
       const weeklyRecord = Array.isArray(weeklyMenu) ? weeklyMenu[0] : weeklyMenu;
       return {
         id: s.id,
         date: s.date,
-        meal_name: weeklyRecord?.meal_slot ?? mealRecord?.name ?? "Unknown",
-        items: weeklyRecord?.items ?? mealRecord?.description ?? null,
-        cost: (s as any).price ?? weeklyRecord?.price ?? mealRecord?.price ?? 0,
+        meal_name: weeklyRecord?.meal_slot ?? "Unknown",
+        items: weeklyRecord?.items ?? null,
+        cost: (s as any).price ?? weeklyRecord?.price ?? 0,
         is_selected: s.is_selected,
       };
     }) || [];

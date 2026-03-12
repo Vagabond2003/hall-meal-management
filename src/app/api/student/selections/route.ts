@@ -29,7 +29,6 @@ export async function GET(request: NextRequest) {
         meal_id,
         weekly_menu_id,
         price,
-        meals ( id, name, description, price, meal_type, date ),
         weekly_menus ( id, week_start_date, day_of_week, meal_slot, items, price )
       `
     )
@@ -47,6 +46,7 @@ export async function GET(request: NextRequest) {
   const { data, error } = await query.order("date");
 
   if (error) {
+    console.error("GET /api/student/selections error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
