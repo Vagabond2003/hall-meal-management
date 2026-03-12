@@ -140,7 +140,7 @@ export function DashboardClient({
 
         if (selRes.ok) {
           const selData = await selRes.json();
-          const selected = (selData.selections ?? []).map((s: any) => s.meal_id);
+          const selected = (selData.selections ?? []).map((s: any) => s.weekly_menu_id ?? s.meal_id).filter(Boolean);
           setSelectedMealIds(selected);
           // Special meals are no longer sourced from the old meals table.
           // All meal data comes from weekly_menus via /api/student/daily-menu.
