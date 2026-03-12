@@ -19,28 +19,13 @@ export async function GET(
     const month = searchParams.get("month") ? parseInt(searchParams.get("month")!) : new Date().getMonth() + 1;
     const year = searchParams.get("year") ? parseInt(searchParams.get("year")!) : new Date().getFullYear();
 
-    // 1. Fetch Meal Selections for the given month/year
+    // 1. Fetch Meal Selections for the given month/year (no joins)
     const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
     const endDate = `${year}-${String(month).padStart(2, '0')}-31`;
 
     const { data: selectionsData, error: selectionsError } = await supabaseAdmin
       .from("meal_selections")
-      .select(`
-        id,
-        date,
-        is_selected,
-        meal_id,
-        weekly_menu_id,
-        price,
-        weekly_menus (
-          id,
-          week_start_date,
-          day_of_week,
-          meal_slot,
-          items,
-          price
-        )
-      `)
+      .select("id, date, is_selected, meal_id, weekly_menu_id, price")
       .eq("student_id", id)
       .eq("is_selected", true)
       .gte("date", startDate)
@@ -51,19 +36,33 @@ export async function GET(
       console.error("[Admin Student Detail] Error fetching month selections:", selectionsError);
     }
 
-    // Format selections
-    const formattedSelections = selectionsData?.map(s => {
-      const weeklyMenu: any = (s as any).weekly_menus;
-      const weeklyRecord = Array.isArray(weeklyMenu) ? weeklyMenu[0] : weeklyMenu;
+    // Fetch weekly menu details for all weekly_menu_ids in one query
+    const weeklyMenuIds = (selectionsData ?? [])
+      .map(s => s.weekly_menu_id)
+      .filter(Boolean) as string[];
+
+    let weeklyMenuMap: Record<string, { meal_slot: string; items: string; price: number }> = {};
+    if (weeklyMenuIds.length > 0) {
+      const { data: weeklyMenus } = await supabaseAdmin
+        .from("weekly_menus")
+        .select("id, meal_slot, items, price")
+        .in("id", weeklyMenuIds);
+      if (weeklyMenus) {
+        weeklyMenuMap = Object.fromEntries(weeklyMenus.map(m => [m.id, m]));
+      }
+    }
+
+    const formattedSelections = (selectionsData ?? []).map(s => {
+      const wm = s.weekly_menu_id ? weeklyMenuMap[s.weekly_menu_id] : null;
       return {
         id: s.id,
         date: s.date,
-        meal_name: weeklyRecord?.meal_slot ?? "Unknown",
-        items: weeklyRecord?.items ?? null,
-        cost: (s as any).price ?? weeklyRecord?.price ?? 0,
+        meal_name: wm?.meal_slot ?? "Unknown",
+        items: wm?.items ?? null,
+        cost: s.price ?? wm?.price ?? 0,
         is_selected: s.is_selected,
       };
-    }) || [];
+    });
 
     // 2. Fetch Billing Records (all time)
     const { data: billingData } = await supabaseAdmin
@@ -73,27 +72,12 @@ export async function GET(
       .order("year", { ascending: false })
       .order("month", { ascending: false });
 
-    // 3. Fetch Today's Selections
+    // 3. Fetch Today's Selections (no joins)
     const today = searchParams.get("date") || new Date().toISOString().split('T')[0];
-    
+
     const { data: todaySelectionsData, error: todaySelectionsError } = await supabaseAdmin
       .from("meal_selections")
-      .select(`
-        id,
-        date,
-        is_selected,
-        meal_id,
-        weekly_menu_id,
-        price,
-        weekly_menus (
-          id,
-          week_start_date,
-          day_of_week,
-          meal_slot,
-          items,
-          price
-        )
-      `)
+      .select("id, date, is_selected, meal_id, weekly_menu_id, price")
       .eq("student_id", id)
       .eq("is_selected", true)
       .eq("date", today);
@@ -102,20 +86,35 @@ export async function GET(
       console.error("[Admin Student Detail] Error fetching today selections:", todaySelectionsError);
     }
 
-    const formattedTodaySelections = todaySelectionsData?.map(s => {
-      const weeklyMenu: any = (s as any).weekly_menus;
-      const weeklyRecord = Array.isArray(weeklyMenu) ? weeklyMenu[0] : weeklyMenu;
+    // Fetch weekly menu details for today's selections
+    const todayWeeklyMenuIds = (todaySelectionsData ?? [])
+      .map(s => s.weekly_menu_id)
+      .filter(Boolean) as string[];
+
+    let todayWeeklyMenuMap: Record<string, { meal_slot: string; items: string; price: number }> = {};
+    if (todayWeeklyMenuIds.length > 0) {
+      const { data: todayMenus } = await supabaseAdmin
+        .from("weekly_menus")
+        .select("id, meal_slot, items, price")
+        .in("id", todayWeeklyMenuIds);
+      if (todayMenus) {
+        todayWeeklyMenuMap = Object.fromEntries(todayMenus.map(m => [m.id, m]));
+      }
+    }
+
+    const formattedTodaySelections = (todaySelectionsData ?? []).map(s => {
+      const wm = s.weekly_menu_id ? todayWeeklyMenuMap[s.weekly_menu_id] : null;
       return {
         id: s.id,
         date: s.date,
-        meal_name: weeklyRecord?.meal_slot ?? "Unknown",
-        items: weeklyRecord?.items ?? null,
-        cost: (s as any).price ?? weeklyRecord?.price ?? 0,
+        meal_name: wm?.meal_slot ?? "Unknown",
+        items: wm?.items ?? null,
+        cost: s.price ?? wm?.price ?? 0,
         is_selected: s.is_selected,
       };
-    }) || [];
+    });
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       selections: formattedSelections,
       billing: billingData || [],
       todaySelections: formattedTodaySelections
