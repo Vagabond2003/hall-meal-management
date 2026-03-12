@@ -13,13 +13,15 @@ import {
   Menu,
   X,
   Calendar,
-  Megaphone
+  Megaphone,
+  BarChart2
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { Button } from "../ui/button";
 
 const adminNavigation = [
   { name: "Overview", href: "/admin/dashboard", icon: LayoutDashboard },
+  { name: "Analytics", href: "/admin/analytics", icon: BarChart2 },
   { name: "Students", href: "/admin/students", icon: Users },
   { name: "Weekly Menu", href: "/admin/weekly-menu", icon: Calendar },
   { name: "Announcements", href: "/admin/announcements", icon: Megaphone },
