@@ -114,8 +114,8 @@ export function DashboardClient({
 
       try {
         const [menuRes, selRes, annRes] = await Promise.all([
-          fetch(`/api/student/daily-menu?date=${dateStr}`),
-          fetch(`/api/student/selections?date=${dateStr}`),
+          fetch(`/api/student/daily-menu?date=${dateStr}`, { cache: 'no-store' }),
+          fetch(`/api/student/selections?date=${dateStr}`, { cache: 'no-store' }),
           fetch("/api/announcements")
         ]);
 
