@@ -16,6 +16,10 @@ import {
   Sun,
   Moon,
   ArrowRight,
+  Megaphone,
+  Heart,
+  Siren,
+  AlertTriangle
 } from "lucide-react";
 import Link from "next/link";
 
@@ -27,6 +31,17 @@ interface Meal {
   meal_type: string;
   date: string | null;
   hasMenu?: boolean;
+}
+
+interface Announcement {
+  id: string;
+  title: string;
+  body: string;
+  priority: "normal" | "important" | "urgent";
+  created_at: string;
+  is_read: boolean;
+  is_liked: boolean;
+  like_count?: number;
 }
 
 interface DashboardClientProps {
@@ -76,6 +91,7 @@ export function DashboardClient({
   const [localToday, setLocalToday] = useState<string>("");
   const [isPastDeadline, setIsPastDeadline] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
   useEffect(() => {
     const fetchLocalData = async () => {
@@ -97,9 +113,10 @@ export function DashboardClient({
       }
 
       try {
-        const [menuRes, selRes] = await Promise.all([
+        const [menuRes, selRes, annRes] = await Promise.all([
           fetch(`/api/student/daily-menu?date=${dateStr}`),
           fetch(`/api/student/selections?date=${dateStr}`),
+          fetch("/api/announcements")
         ]);
 
         if (menuRes.ok) {
@@ -128,6 +145,12 @@ export function DashboardClient({
           // Special meals are no longer sourced from the old meals table.
           // All meal data comes from weekly_menus via /api/student/daily-menu.
         }
+
+        if (annRes.ok) {
+          const annData = await annRes.json();
+          // Take only the 3 most recent
+          setAnnouncements((annData.announcements || []).slice(0, 3));
+        }
       } catch (err) {
         console.error("Failed to fetch local data", err);
       } finally {
@@ -136,6 +159,38 @@ export function DashboardClient({
     };
     fetchLocalData();
   }, [deadline]);
+
+  const handleAnnouncementInteract = async (id: string, action: "read" | "like") => {
+    // Optimistic update
+    setAnnouncements(prev => prev.map(ann => {
+      if (ann.id !== id) return ann;
+      return {
+        ...ann,
+        is_read: action === "read" ? true : ann.is_read,
+        is_liked: action === "like" ? !ann.is_liked : ann.is_liked
+      };
+    }));
+
+    try {
+      const ann = announcements.find(a => a.id === id);
+      const is_read = action === "read" ? true : undefined;
+      const is_liked = action === "like" ? !ann?.is_liked : undefined;
+
+      await fetch(`/api/announcements/${id}/interact`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_read, is_liked })
+      });
+    } catch (error) {
+      console.error("Failed to update announcement interaction", error);
+    }
+  };
+
+  const PriorityBadgeConfig = {
+    normal: { bg: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300", icon: null },
+    important: { bg: "bg-warning/10 text-warning", icon: <AlertTriangle className="w-3.5 h-3.5 mr-1" /> },
+    urgent: { bg: "bg-danger/10 text-danger", icon: <Siren className="w-3.5 h-3.5 mr-1" /> }
+  };
 
   return (
     <div className="space-y-8">
@@ -225,6 +280,76 @@ export function DashboardClient({
           />
         </motion.div>
       </motion.div>
+
+      {/* Announcements */}
+      {!loading && announcements.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-4"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <Megaphone className="w-5 h-5 text-primary" />
+            <h2 className="text-lg font-heading font-semibold text-text-primary">Announcements</h2>
+          </div>
+          
+          <div className="grid gap-3">
+            {announcements.map((ann) => (
+              <div 
+                key={ann.id} 
+                className={`bg-white dark:bg-surface border border-border/50 rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col sm:flex-row gap-4 transition-all ${ann.is_read ? 'opacity-85' : ''}`}
+              >
+                {!ann.is_read && ann.priority === "urgent" && (
+                  <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-danger"></div>
+                )}
+                {!ann.is_read && ann.priority === "important" && (
+                  <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-warning"></div>
+                )}
+                {!ann.is_read && ann.priority === "normal" && (
+                  <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-slate-300 dark:bg-slate-600"></div>
+                )}
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${PriorityBadgeConfig[ann.priority].bg}`}>
+                      {PriorityBadgeConfig[ann.priority].icon}
+                      {ann.priority}
+                    </span>
+                  </div>
+                  <h3 className="text-base font-heading font-bold text-text-primary truncate">{ann.title}</h3>
+                  <p className="text-sm text-text-secondary mt-1 line-clamp-2 font-sans">{ann.body}</p>
+                </div>
+
+                <div className="flex items-center sm:flex-col justify-end gap-2 mt-2 sm:mt-0 sm:min-w-[100px]">
+                  <button
+                    onClick={() => handleAnnouncementInteract(ann.id, "like")}
+                    className={`p-2 rounded-full transition-colors flex items-center justify-center border ${ann.is_liked ? "bg-accent-gold/10 text-accent-gold border-accent-gold/20" : "bg-slate-50 text-slate-400 border-border/50 hover:bg-slate-100 dark:bg-slate-800/50 dark:hover:bg-slate-800"}`}
+                  >
+                    <Heart className={`w-4 h-4 ${ann.is_liked ? "fill-current" : ""}`} />
+                  </button>
+                  {!ann.is_read && (
+                    <button
+                      onClick={() => handleAnnouncementInteract(ann.id, "read")}
+                      className="px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors"
+                    >
+                      Mark read
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-right mt-2">
+            <Link 
+              href="/student/announcements" 
+              className="text-sm font-semibold text-primary hover:text-primary-dark transition-colors inline-flex items-center gap-1"
+            >
+              View All Announcements <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        </motion.div>
+      )}
 
       {/* Today's Selections */}
       <div>

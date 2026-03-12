@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -11,7 +11,8 @@ import {
   Receipt,
   LogOut,
   Menu,
-  X
+  X,
+  Megaphone
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { Button } from "../ui/button";
@@ -20,12 +21,29 @@ const studentNavigation = [
   { name: "Dashboard", href: "/student/dashboard", icon: LayoutDashboard },
   { name: "Meal Selection", href: "/student/meal-selection", icon: UtensilsCrossed },
   { name: "Meal History", href: "/student/history", icon: History },
+  { name: "Announcements", href: "/student/announcements", icon: Megaphone },
   { name: "Monthly Bill", href: "/student/billing", icon: Receipt },
 ];
 
 export function StudentSidebar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      try {
+        const res = await fetch("/api/announcements/unread-count");
+        if (res.ok) {
+          const data = await res.json();
+          setUnreadCount(data.count || 0);
+        }
+      } catch (error) {
+        console.error("Failed to fetch unread announcements count", error);
+      }
+    };
+    fetchUnreadCount();
+  }, [pathname]); // Refresh count when navigation changes
 
   return (
     <>
@@ -72,7 +90,12 @@ export function StudentSidebar() {
                   <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-accent-gold rounded-r-md"></span>
                 )}
                 <item.icon className={cn("w-5 h-5", isActive ? "text-accent-gold" : "text-white/70 group-hover:text-white")} />
-                {item.name}
+                <span className="flex-1">{item.name}</span>
+                {item.name === "Announcements" && unreadCount > 0 && (
+                  <span className="bg-danger text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full inline-flex items-center justify-center min-w-[20px]">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
               </Link>
             );
           })}
