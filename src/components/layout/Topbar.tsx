@@ -7,6 +7,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { usePathname } from "next/navigation";
 
 interface Activity {
   id: string;
@@ -17,6 +18,7 @@ interface Activity {
 
 export function Topbar() {
   const { data: session, status } = useSession();
+  const pathname = usePathname();
   
   const [showBell, setShowBell] = useState(false);
   const [showUser, setShowUser] = useState(false);
@@ -25,6 +27,9 @@ export function Topbar() {
   
   const bellRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
+
+  const isAdmin = pathname?.startsWith("/admin");
+  const isStudent = pathname?.startsWith("/student");
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -40,9 +45,9 @@ export function Topbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Fetch activities when bell is opened for the first time
+  // Fetch activities when bell is opened for the first time (admin only)
   useEffect(() => {
-    if (showBell && activities.length === 0) {
+    if (showBell && activities.length === 0 && isAdmin) {
       setIsLoadingActivities(true);
       fetch('/api/admin/activities')
         .then(res => res.json())
@@ -51,7 +56,7 @@ export function Topbar() {
         })
         .finally(() => setIsLoadingActivities(false));
     }
-  }, [showBell, activities.length]);
+  }, [showBell, activities.length, isAdmin]);
 
   // Format current date e.g. "Mon, Oct 24, 2024"
   const currentDate = new Date().toLocaleDateString("en-US", {
@@ -61,19 +66,22 @@ export function Topbar() {
     year: 'numeric'
   });
 
+  const displayName = session?.user?.name || (isStudent ? "Student" : "User");
+  const displayRole = session?.user?.role || (isStudent ? "student" : isAdmin ? "admin" : "user");
+
   return (
     <header className="h-16 lg:h-20 bg-background/80 backdrop-blur-md sticky top-0 md:top-0 lg:top-0 z-30 border-b border-border px-6 flex items-center justify-between mt-16 lg:mt-0">
       <div className="hidden sm:block">
         <p className="text-text-secondary text-sm font-medium">{currentDate}</p>
         <h2 className="text-xl font-heading font-bold text-text-primary capitalize">
           Welcome back
-          {status === "loading" ? "..." : (session?.user?.name ? `, ${session.user.name.split(" ")[0]}` : "")}
+          {status === "loading" ? "..." : (displayName !== "Student" && displayName !== "User" ? `, ${displayName.split(" ")[0]}` : "")}
         </h2>
       </div>
       
       {/* Fallback for mobile since the greeting is hidden */}
       <h2 className="text-lg font-heading font-bold text-text-primary sm:hidden capitalize">
-        Dashboard
+        {isStudent ? "Student Dashboard" : isAdmin ? "Admin Dashboard" : "Dashboard"}
       </h2>
 
       <div className="flex items-center gap-4">
@@ -158,7 +166,7 @@ export function Topbar() {
               <Skeleton className="h-9 w-9 rounded-full" />
             ) : (
               <div className="w-9 h-9 bg-primary/10 text-primary rounded-full flex items-center justify-center font-bold font-heading">
-                {session?.user?.name?.charAt(0).toUpperCase() || "U"}
+                {displayName.charAt(0).toUpperCase()}
               </div>
             )}
             <div className="hidden md:block">
@@ -170,10 +178,10 @@ export function Topbar() {
               ) : (
                 <>
                   <p className="text-sm font-semibold text-text-primary leading-none capitalize group-hover:text-primary transition-colors">
-                    {session?.user?.name || "Student User"}
+                    {displayName}
                   </p>
                   <p className="text-xs text-text-secondary mt-1 tracking-wide uppercase">
-                    {session?.user?.role || "Student"}
+                    {displayRole}
                   </p>
                 </>
               )}

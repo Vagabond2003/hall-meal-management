@@ -8,13 +8,10 @@ import {
   Sunrise,
   Sun,
   Moon,
-  Star,
   Clock,
   Lock,
-  AlertCircle,
   Calendar
 } from "lucide-react";
-import { format } from "date-fns";
 import { toast } from "sonner";
 
 interface Meal {
@@ -45,15 +42,15 @@ const itemVariants = {
 };
 
 export default function MealSelectionPage() {
-  const [meals, setMeals] = useState<Meal[]>([]);
+  const [regularMeals, setRegularMeals] = useState<Meal[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deadline, setDeadline] = useState("10:00 PM");
   const [isPastDeadline, setIsPastDeadline] = useState(false);
-  const [mealSelectionEnabled, setMealSelectionEnabled] = useState(true);
+  const [mealSelectionEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
-
   const [todayStr, setTodayStr] = useState("");
-  const currentMonth = format(new Date(), "MMMM yyyy");
+
+  const currentMonth = new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -62,31 +59,54 @@ export default function MealSelectionPage() {
         const dateStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, "0")}-${String(todayObj.getDate()).padStart(2, "0")}`;
         setTodayStr(dateStr);
 
-        const [mealsRes, selRes] = await Promise.all([
-          fetch(`/api/student/meals?date=${dateStr}`),
+        // Fetch daily menu (from weekly_menus) and selections in parallel.
+        // NOTE: /api/student/meals (old meals table) is intentionally NOT used here.
+        const [menuRes, selRes, settingsRes] = await Promise.all([
+          fetch(`/api/student/daily-menu?date=${dateStr}`),
           fetch(`/api/student/selections?date=${dateStr}`),
+          fetch(`/api/student/settings`),
         ]);
 
-        const mealsData = await mealsRes.json();
-        const selData = await selRes.json();
+        // Process daily menu (regular meals from weekly_menus)
+        if (menuRes.ok) {
+          const { menus } = await menuRes.json();
+          if (menus && menus.length > 0) {
+            const menuMeals: Meal[] = menus.map((m: { id: string; meal_slot: string; items: string; price: string | number }) => ({
+              id: m.id,
+              name: m.meal_slot,
+              description: m.items,
+              price: Number(m.price),
+              meal_type: "regular",
+              date: null,
+              hasMenu: true,
+            }));
+            setRegularMeals(menuMeals);
+          } else {
+            setRegularMeals([]);
+          }
+        }
 
-        setMeals(mealsData.meals ?? []);
+        // Process selections
+        if (selRes.ok) {
+          const selData = await selRes.json();
+          const selected = new Set<string>(
+            (selData.selections ?? []).map((s: { meal_id: string }) => s.meal_id)
+          );
+          setSelectedIds(selected);
+        }
 
-        // Parse deadline
-        const dl: string = mealsData.deadline ?? "22:00:00";
-        const [dh, dm] = dl.split(":").map(Number);
-        const displayDl = `${dh > 12 ? dh - 12 : dh}:${String(dm).padStart(2, "0")} ${dh >= 12 ? "PM" : "AM"}`;
-        setDeadline(displayDl);
+        // Get deadline from settings (not from old meals API)
+        if (settingsRes.ok) {
+          const settingsData = await settingsRes.json();
+          const dl: string = settingsData.deadline ?? "22:00:00";
+          const [dh, dm] = dl.split(":").map(Number);
+          const displayDl = `${dh > 12 ? dh - 12 : dh}:${String(dm).padStart(2, "0")} ${dh >= 12 ? "PM" : "AM"}`;
+          setDeadline(displayDl);
 
-        const now = new Date();
-        const dlTime = new Date();
-        dlTime.setHours(dh, dm, 0, 0);
-        setIsPastDeadline(now > dlTime);
-
-        const selected = new Set<string>(
-          (selData.selections ?? []).map((s: { meal_id: string }) => s.meal_id)
-        );
-        setSelectedIds(selected);
+          const dlTime = new Date();
+          dlTime.setHours(dh, dm, 0, 0);
+          setIsPastDeadline(todayObj > dlTime);
+        }
       } catch {
         toast.error("Failed to load meal data");
       } finally {
@@ -106,11 +126,8 @@ export default function MealSelectionPage() {
     });
   };
 
-  const regularMeals = meals.filter((m) => m.meal_type === "regular");
-  const specialMeals = meals.filter((m) => m.meal_type === "special");
-
   const estimatedCost = [...selectedIds].reduce((acc, id) => {
-    const meal = meals.find((m) => m.id === id);
+    const meal = regularMeals.find((m) => m.id === id);
     return acc + (meal ? Number(meal.price) : 0);
   }, 0);
 
@@ -175,9 +192,9 @@ export default function MealSelectionPage() {
 
       {/* Regular Meals */}
       <div>
-        <h2 className="text-base font-heading font-semibold text-text-primary mb-3">Regular Meals</h2>
+        <h2 className="text-base font-heading font-semibold text-text-primary mb-3">Today&apos;s Menu</h2>
         
-        {regularMeals.every(m => !m.hasMenu) && (
+        {regularMeals.length === 0 ? (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -188,81 +205,26 @@ export default function MealSelectionPage() {
               No menu has been set for today. Check back later.
             </p>
           </motion.div>
-        )}
-
-        {regularMeals.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 py-12 text-text-secondary">
-            <UtensilsCrossed className="w-10 h-10 opacity-30" />
-            <p className="text-sm">No regular meals configured. Please contact your admin.</p>
-          </div>
         ) : (
           <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-3">
             {regularMeals.map((meal) => (
               <motion.div key={meal.id} variants={itemVariants}>
-                {!meal.hasMenu ? (
-                  <div className="flex items-center justify-between p-4 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-surface/50 opacity-60">
-                    <div className="flex items-center gap-3">
-                      <div className="text-text-secondary">{getMealIcon(meal.name)}</div>
-                      <div>
-                        <h3 className="font-heading font-semibold text-text-primary text-sm">{meal.name}</h3>
-                        <p className="text-xs text-text-secondary flex items-center gap-1 mt-0.5">
-                          <Calendar className="w-3 h-3" /> Menu not set yet
-                        </p>
-                      </div>
-                    </div>
-                    <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 rounded-full cursor-not-allowed opacity-50 relative">
-                      <div className="absolute left-1 top-1 w-4 h-4 rounded-full bg-white transition-all" />
-                    </div>
-                  </div>
-                ) : (
-                  <MealToggleCard
-                    mealId={meal.id}
-                    name={meal.name}
-                    icon={getMealIcon(meal.name)}
-                    description={meal.description ?? "Freshly prepared daily meal"}
-                    price={Number(meal.price)}
-                    initialSelected={selectedIds.has(meal.id)}
-                    date={todayStr}
-                    disabled={!mealSelectionEnabled || isPastDeadline}
-                    onToggle={handleToggle}
-                  />
-                )}
-              </motion.div>
-            ))}
-          </motion.div>
-        )}
-      </div>
-
-      {/* Special Meals */}
-      {specialMeals.length > 0 && (
-        <div>
-          <h2 className="text-base font-heading font-semibold text-text-primary mb-3 flex items-center gap-2">
-            <Star className="w-4 h-4 text-accent-gold" />
-            Special Meals
-          </h2>
-          <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid sm:grid-cols-2 gap-3">
-            {specialMeals.map((meal) => (
-              <motion.div key={meal.id} variants={itemVariants}>
-                <div className="text-xs text-accent-gold font-medium mb-1">
-                  📅 {meal.date}
-                </div>
                 <MealToggleCard
                   mealId={meal.id}
                   name={meal.name}
-                  icon={<Star className="w-5 h-5" />}
-                  description={meal.description ?? ""}
+                  icon={getMealIcon(meal.name)}
+                  description={meal.description ?? "Freshly prepared daily meal"}
                   price={Number(meal.price)}
                   initialSelected={selectedIds.has(meal.id)}
-                  date={meal.date ?? todayStr}
-                  disabled={!mealSelectionEnabled}
-                  isSpecial
+                  date={todayStr}
+                  disabled={!mealSelectionEnabled || isPastDeadline}
                   onToggle={handleToggle}
                 />
               </motion.div>
             ))}
           </motion.div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Cost Summary */}
       <motion.div

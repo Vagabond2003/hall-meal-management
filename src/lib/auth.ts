@@ -100,11 +100,12 @@ export const authOptions: NextAuthOptions = {
       if (token.id) {
         const { data } = await supabaseAdmin
           .from("users")
-          .select("is_approved, is_active, role, meal_selection_enabled")
+          .select("name, is_approved, is_active, role, meal_selection_enabled")
           .eq("id", token.id)
           .single();
 
         if (data) {
+          token.name = data.name;
           token.is_approved = data.is_approved;
           token.is_active = data.is_active;
           token.role = data.role;
@@ -116,6 +117,7 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
+        session.user.name = token.name as string; // Always use DB-fetched name, never default
         session.user.role = token.role as string;
         session.user.is_approved = token.is_approved as boolean;
         session.user.is_active = token.is_active as boolean;

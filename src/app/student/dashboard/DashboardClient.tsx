@@ -12,7 +12,6 @@ import {
   Calendar,
   Clock,
   Lock,
-  Star,
   Sunrise,
   Sun,
   Moon,
@@ -39,12 +38,7 @@ interface DashboardClientProps {
   isActive: boolean;
   isApproved: boolean;
   mealSelectionEnabled: boolean;
-  regularMeals: Meal[];
-  specialMeals: Meal[];
-  selectedMealIds: string[];
-  today: string;
   deadline: string;
-  isPastDeadline: boolean;
   currentMonthName: string;
 }
 
@@ -74,23 +68,33 @@ export function DashboardClient({
   isActive,
   isApproved,
   mealSelectionEnabled,
-  regularMeals,
-  specialMeals,
-  selectedMealIds,
-  today,
   deadline,
-  isPastDeadline,
   currentMonthName,
 }: DashboardClientProps) {
-  const [regularMealsState, setRegularMealsState] = useState<Meal[]>(regularMeals);
-  const [selectedMealIdsState, setSelectedMealIdsState] = useState<string[]>(selectedMealIds);
-  const [localToday, setLocalToday] = useState<string>(today);
+  const [regularMeals, setRegularMeals] = useState<Meal[]>([]);
+  const [selectedMealIds, setSelectedMealIds] = useState<string[]>([]);
+  const [localToday, setLocalToday] = useState<string>("");
+  const [isPastDeadline, setIsPastDeadline] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchLocalData = async () => {
       const todayObj = new Date();
       const dateStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, "0")}-${String(todayObj.getDate()).padStart(2, "0")}`;
       setLocalToday(dateStr);
+
+      // Parse deadline for local check
+      const dlMatch = deadline.match(/(\d+):(\d+)\s*(AM|PM)/i);
+      if (dlMatch) {
+        let dh = parseInt(dlMatch[1]);
+        const dm = parseInt(dlMatch[2]);
+        const period = dlMatch[3].toUpperCase();
+        if (period === "PM" && dh < 12) dh += 12;
+        if (period === "AM" && dh === 12) dh = 0;
+        const dlTime = new Date();
+        dlTime.setHours(dh, dm, 0, 0);
+        setIsPastDeadline(todayObj > dlTime);
+      }
 
       try {
         const [menuRes, selRes] = await Promise.all([
@@ -100,28 +104,38 @@ export function DashboardClient({
 
         if (menuRes.ok) {
           const { menus } = await menuRes.json();
-          setRegularMealsState((prev) =>
-            prev.map((m) => {
-              const slot = menus?.find((tm: any) => tm.meal_slot.toLowerCase() === m.name.toLowerCase());
-              if (slot) {
-                return { ...m, description: slot.items, price: slot.price, hasMenu: true };
-              }
-              return { ...m, hasMenu: false };
-            })
-          );
+          if (menus && menus.length > 0) {
+            // Build meal cards directly from weekly_menus data
+            const menuMeals: Meal[] = menus.map((m: any) => ({
+              id: m.id,
+              name: m.meal_slot,
+              description: m.items,
+              price: Number(m.price),
+              meal_type: "regular",
+              date: null,
+              hasMenu: true,
+            }));
+            setRegularMeals(menuMeals);
+          } else {
+            setRegularMeals([]);
+          }
         }
 
         if (selRes.ok) {
           const selData = await selRes.json();
           const selected = (selData.selections ?? []).map((s: any) => s.meal_id);
-          setSelectedMealIdsState(selected);
+          setSelectedMealIds(selected);
+          // Special meals are no longer sourced from the old meals table.
+          // All meal data comes from weekly_menus via /api/student/daily-menu.
         }
       } catch (err) {
         console.error("Failed to fetch local data", err);
+      } finally {
+        setLoading(false);
       }
     };
     fetchLocalData();
-  }, []);
+  }, [deadline]);
 
   return (
     <div className="space-y-8">
@@ -250,10 +264,23 @@ export function DashboardClient({
         )}
 
         {/* Regular meal toggles */}
-        {regularMealsState.length === 0 ? (
-          <div className="text-center py-8 text-text-secondary text-sm">
-            No regular meals configured yet. Contact your admin.
+        {loading ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-20 bg-surface-secondary rounded-2xl animate-pulse" />
+            ))}
           </div>
+        ) : regularMeals.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex items-center gap-3 p-4 mb-4 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-600 dark:text-amber-500"
+          >
+            <Calendar className="w-5 h-5 flex-shrink-0" />
+            <p className="text-sm font-medium">
+              No menu has been set for today. Check back later.
+            </p>
+          </motion.div>
         ) : (
           <motion.div
             variants={containerVariants}
@@ -261,90 +288,25 @@ export function DashboardClient({
             animate="show"
             className="space-y-3"
           >
-            {/* NO MENU SET ENTIRE DAY BANNER */}
-            {regularMealsState.every(m => !m.hasMenu) && (
-              <motion.div
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-3 p-4 mb-4 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-600 dark:text-amber-500"
-              >
-                <Calendar className="w-5 h-5 flex-shrink-0" />
-                <p className="text-sm font-medium">
-                  No menu has been set for today. Check back later.
-                </p>
-              </motion.div>
-            )}
-
-            {regularMealsState.map((meal) => (
+            {regularMeals.map((meal) => (
               <motion.div key={meal.id} variants={itemVariants}>
-                {!meal.hasMenu ? (
-                  <div className="flex items-center justify-between p-4 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-surface/50 opacity-60">
-                    <div className="flex items-center gap-3">
-                      <div className="text-text-secondary">{getMealIcon(meal.name)}</div>
-                      <div>
-                        <h3 className="font-heading font-semibold text-text-primary text-sm">{meal.name}</h3>
-                        <p className="text-xs text-text-secondary flex items-center gap-1 mt-0.5">
-                          <Calendar className="w-3 h-3" /> Menu not set yet
-                        </p>
-                      </div>
-                    </div>
-                    {/* Fake disabled toggle */}
-                    <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 rounded-full cursor-not-allowed opacity-50 relative">
-                      <div className="absolute left-1 top-1 w-4 h-4 rounded-full bg-white transition-all" />
-                    </div>
-                  </div>
-                ) : (
-                  <MealToggleCard
-                    mealId={meal.id}
-                    name={meal.name}
-                    icon={getMealIcon(meal.name)}
-                    description={meal.description ?? ""}
-                    price={Number(meal.price)}
-                    initialSelected={selectedMealIdsState.includes(meal.id)}
-                    date={localToday}
-                    disabled={!mealSelectionEnabled || isPastDeadline}
-                  />
-                )}
+                <MealToggleCard
+                  mealId={meal.id}
+                  name={meal.name}
+                  icon={getMealIcon(meal.name)}
+                  description={meal.description ?? ""}
+                  price={Number(meal.price)}
+                  initialSelected={selectedMealIds.includes(meal.id)}
+                  date={localToday}
+                  disabled={!mealSelectionEnabled || isPastDeadline}
+                />
               </motion.div>
             ))}
           </motion.div>
         )}
       </div>
 
-      {/* Special Meals */}
-      {specialMeals.length > 0 && (
-        <div>
-          <h2 className="text-lg font-heading font-semibold text-text-primary mb-4 flex items-center gap-2">
-            <Star className="w-5 h-5 text-accent-gold" />
-            Special Meals Available
-          </h2>
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="show"
-            className="space-y-3"
-          >
-            {specialMeals.map((meal) => (
-              <motion.div key={meal.id} variants={itemVariants}>
-                <div className="text-xs text-accent-gold font-medium mb-1 ml-1">
-                  📅 {meal.date}
-                </div>
-                <MealToggleCard
-                  mealId={meal.id}
-                  name={meal.name}
-                  icon={<Star className="w-5 h-5" />}
-                  description={meal.description ?? ""}
-                  price={Number(meal.price)}
-                  initialSelected={selectedMealIds.includes(meal.id)}
-                  date={meal.date ?? today}
-                  disabled={!mealSelectionEnabled || (meal.date === today && isPastDeadline)}
-                  isSpecial
-                />
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      )}
+
 
       {/* Quick Links */}
       <div>
