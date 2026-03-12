@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ selections: data ?? [] }, { headers: { "Cache-Control": "no-store, no-cache, must-revalidate" } });
+  return NextResponse.json({ selections: data ?? [] }, { headers: { "Cache-Control": "no-store, max-age=0, private" } });
 }
 
 // POST /api/student/selections — toggle a meal selection on/off for today
