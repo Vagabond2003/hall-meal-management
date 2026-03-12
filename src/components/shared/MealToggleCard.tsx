@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Star } from "lucide-react";
@@ -33,6 +33,10 @@ export function MealToggleCard({
 }: MealToggleCardProps) {
   const [selected, setSelected] = useState(initialSelected);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setSelected(initialSelected);
+  }, [initialSelected]);
 
   const handleToggle = async () => {
     if (disabled || loading) return;

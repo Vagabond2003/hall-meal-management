@@ -29,10 +29,20 @@ export async function GET(
         id,
         date,
         is_selected,
+        meal_id,
+        weekly_menu_id,
         meals (
           id,
           name,
           description,
+          price
+        ),
+        weekly_menus (
+          id,
+          week_start_date,
+          day_of_week,
+          meal_slot,
+          items,
           price
         )
       `)
@@ -45,12 +55,16 @@ export async function GET(
     // Format selections
     const formattedSelections = selectionsData?.map(s => {
       const meals: any = s.meals;
+      const weeklyMenu: any = (s as any).weekly_menus;
+      const mealRecord = Array.isArray(meals) ? meals[0] : meals;
+      const weeklyRecord = Array.isArray(weeklyMenu) ? weeklyMenu[0] : weeklyMenu;
       return {
         id: s.id,
         date: s.date,
-        meal_name: Array.isArray(meals) ? meals[0]?.name : meals?.name || "Unknown",
-        items: Array.isArray(meals) ? meals[0]?.description : meals?.description,
-        cost: Array.isArray(meals) ? meals[0]?.price : meals?.price
+        meal_name: weeklyRecord?.meal_slot ?? mealRecord?.name ?? "Unknown",
+        items: weeklyRecord?.items ?? mealRecord?.description ?? null,
+        cost: (s as any).price ?? weeklyRecord?.price ?? mealRecord?.price ?? 0,
+        is_selected: s.is_selected,
       };
     }) || [];
 
@@ -70,10 +84,20 @@ export async function GET(
         id,
         date,
         is_selected,
+        meal_id,
+        weekly_menu_id,
         meals (
           id,
           name,
           description,
+          price
+        ),
+        weekly_menus (
+          id,
+          week_start_date,
+          day_of_week,
+          meal_slot,
+          items,
           price
         )
       `)
@@ -83,12 +107,16 @@ export async function GET(
 
     const formattedTodaySelections = todaySelectionsData?.map(s => {
       const meals: any = s.meals;
+      const weeklyMenu: any = (s as any).weekly_menus;
+      const mealRecord = Array.isArray(meals) ? meals[0] : meals;
+      const weeklyRecord = Array.isArray(weeklyMenu) ? weeklyMenu[0] : weeklyMenu;
       return {
         id: s.id,
         date: s.date,
-        meal_name: Array.isArray(meals) ? meals[0]?.name : meals?.name || "Unknown",
-        items: Array.isArray(meals) ? meals[0]?.description : meals?.description,
-        cost: Array.isArray(meals) ? meals[0]?.price : meals?.price
+        meal_name: weeklyRecord?.meal_slot ?? mealRecord?.name ?? "Unknown",
+        items: weeklyRecord?.items ?? mealRecord?.description ?? null,
+        cost: (s as any).price ?? weeklyRecord?.price ?? mealRecord?.price ?? 0,
+        is_selected: s.is_selected,
       };
     }) || [];
 
