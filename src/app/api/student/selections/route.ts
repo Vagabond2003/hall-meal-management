@@ -21,19 +21,18 @@ export async function GET(request: NextRequest) {
   const year = searchParams.get("year");
 
   let query = supabaseAdmin
-    .from("meal_selections")
-    .select(
-      `
-        id,
-        date,
-        is_selected,
-        student_id,
-        meal_id,
-        weekly_menu_id,
-        price,
-        weekly_menus ( id, week_start_date, day_of_week, meal_slot, items, price )
-      `
-    )
+  .from("meal_selections")
+  .select(
+    `
+      id,
+      date,
+      is_selected,
+      student_id,
+      meal_id,
+      weekly_menu_id,
+      price
+    `
+  )
     .eq("student_id", session.user.id)
     .eq("is_selected", true);
 
