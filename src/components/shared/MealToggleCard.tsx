@@ -45,7 +45,12 @@ export function MealToggleCard({
       const res = await fetch("/api/student/selections", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ meal_id: mealId, date, is_selected: newState }),
+        body: JSON.stringify({
+          date,
+          is_selected: newState,
+          meal_id: isSpecial ? mealId : null,
+          weekly_menu_id: isSpecial ? null : mealId,
+        }),
       });
 
       const data = await res.json();

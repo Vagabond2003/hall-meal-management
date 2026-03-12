@@ -9,16 +9,24 @@ export async function calculateMonthlyBill(studentId: string, month: number, yea
     .from("meal_selections")
     .select(`
       price,
-      meals ( price )
+      meals ( price ),
+      weekly_menus ( price )
     `)
     .eq("student_id", studentId)
     .eq("is_selected", true)
     .gte("date", startDate)
     .lte("date", endDateStr);
 
+  if (fetchError) {
+    console.error("Error fetching meal selections for billing", studentId, fetchError);
+  }
+
   let totalCost = 0;
   if (selections) {
-    totalCost = selections.reduce((sum, sel: any) => sum + Number(sel.price || sel.meals?.price || 0), 0);
+    totalCost = selections.reduce(
+      (sum, sel: any) => sum + Number(sel.price ?? sel.weekly_menus?.price ?? sel.meals?.price ?? 0),
+      0
+    );
   }
 
   // Fetch existing billing to preserve is_paid status if it exists

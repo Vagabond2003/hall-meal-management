@@ -20,7 +20,19 @@ export async function GET(request: NextRequest) {
 
   let query = supabaseAdmin
     .from("meal_selections")
-    .select(`id, date, is_selected, student_id, meal_id, price, meals ( id, name, description, price, meal_type, date )`)
+    .select(
+      `
+        id,
+        date,
+        is_selected,
+        student_id,
+        meal_id,
+        weekly_menu_id,
+        price,
+        meals ( id, name, description, price, meal_type, date ),
+        weekly_menus ( id, week_start_date, day_of_week, meal_slot, items, price )
+      `
+    )
     .eq("student_id", session.user.id)
     .eq("is_selected", true);
 
@@ -53,10 +65,21 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { meal_id, date, is_selected } = body;
+  const { meal_id, weekly_menu_id, date, is_selected } = body as {
+    meal_id: string | null | undefined;
+    weekly_menu_id: string | null | undefined;
+    date: string | undefined;
+    is_selected: boolean | undefined;
+  };
 
-  if (!meal_id || !date) {
-    return NextResponse.json({ error: "meal_id and date are required" }, { status: 400 });
+  if (!date) {
+    return NextResponse.json({ error: "date is required" }, { status: 400 });
+  }
+  if ((meal_id && weekly_menu_id) || (!meal_id && !weekly_menu_id)) {
+    return NextResponse.json(
+      { error: "Provide exactly one of meal_id (special) or weekly_menu_id (regular)" },
+      { status: 400 }
+    );
   }
 
   // Check deadline
@@ -80,51 +103,54 @@ export async function POST(request: NextRequest) {
 
   // Securely determine the price
   let mealPrice = 0;
-  
-  const { data: mealData } = await supabaseAdmin
-    .from("meals")
-    .select("name, price, meal_type")
-    .eq("id", meal_id)
-    .single();
-
-  if (mealData) {
-    if (mealData.meal_type === "regular") {
-      const [year, month, day] = date.split('-').map(Number);
-      const targetDate = new Date(year, month - 1, day);
-      const dayOfWeek = targetDate.getDay();
-      const weekStart = new Date(targetDate);
-      weekStart.setDate(targetDate.getDate() - dayOfWeek);
-      const weekStartStr = format(weekStart, "yyyy-MM-dd");
-
-      const { data: weeklyMenu } = await supabaseAdmin
-        .from("weekly_menus")
-        .select("price")
-        .eq("week_start_date", weekStartStr)
-        .eq("day_of_week", dayOfWeek)
-        .ilike("meal_slot", mealData.name)
-        .single();
-      
-      if (weeklyMenu) {
-        mealPrice = weeklyMenu.price;
-      }
-    } else {
-      mealPrice = mealData.price;
+  if (weekly_menu_id) {
+    const { data: weeklyMenu, error: weeklyMenuErr } = await supabaseAdmin
+      .from("weekly_menus")
+      .select("price")
+      .eq("id", weekly_menu_id)
+      .single();
+    if (weeklyMenuErr) {
+      return NextResponse.json({ error: weeklyMenuErr.message }, { status: 500 });
     }
+    mealPrice = Number(weeklyMenu?.price ?? 0);
+  } else if (meal_id) {
+    const { data: mealData, error: mealErr } = await supabaseAdmin
+      .from("meals")
+      .select("price")
+      .eq("id", meal_id)
+      .single();
+    if (mealErr) {
+      return NextResponse.json({ error: mealErr.message }, { status: 500 });
+    }
+    mealPrice = Number(mealData?.price ?? 0);
   }
 
-  // Upsert the selection with the price
-  const { error } = await supabaseAdmin
+  const selectionMatch = weekly_menu_id
+    ? { student_id: session.user.id, weekly_menu_id, date }
+    : { student_id: session.user.id, meal_id: meal_id!, date };
+
+  const { data: existing, error: existingErr } = await supabaseAdmin
     .from("meal_selections")
-    .upsert(
-      {
-        student_id: session.user.id,
-        meal_id,
-        date,
-        is_selected: is_selected ?? true,
-        price: mealPrice,
-      },
-      { onConflict: "student_id,meal_id,date" }
-    );
+    .select("id")
+    .match(selectionMatch)
+    .maybeSingle();
+
+  if (existingErr) {
+    return NextResponse.json({ error: existingErr.message }, { status: 500 });
+  }
+
+  const payload = {
+    student_id: session.user.id,
+    date,
+    is_selected: is_selected ?? true,
+    price: mealPrice,
+    meal_id: meal_id ?? null,
+    weekly_menu_id: weekly_menu_id ?? null,
+  };
+
+  const { error } = existing?.id
+    ? await supabaseAdmin.from("meal_selections").update(payload).eq("id", existing.id)
+    : await supabaseAdmin.from("meal_selections").insert(payload);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

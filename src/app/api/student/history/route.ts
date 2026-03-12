@@ -22,7 +22,9 @@ export async function GET(request: NextRequest) {
       is_selected,
       student_id,
       meal_id,
-      meals ( id, name, description, price, meal_type )
+      weekly_menu_id,
+      meals ( id, name, description, price, meal_type ),
+      weekly_menus ( id, week_start_date, day_of_week, meal_slot, items, price )
     `)
     .eq("student_id", session.user.id)
     .eq("is_selected", true);

@@ -90,7 +90,9 @@ export default function MealSelectionPage() {
         if (selRes.ok) {
           const selData = await selRes.json();
           const selected = new Set<string>(
-            (selData.selections ?? []).map((s: { meal_id: string }) => s.meal_id)
+            (selData.selections ?? []).map((s: { meal_id: string | null; weekly_menu_id?: string | null }) =>
+              s.weekly_menu_id ?? s.meal_id
+            ).filter(Boolean) as string[]
           );
           setSelectedIds(selected);
         }

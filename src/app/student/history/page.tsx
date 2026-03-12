@@ -11,6 +11,7 @@ interface Selection {
   date: string;
   price?: number;
   meals: { name: string; description: string | null; price: number; meal_type: string } | null;
+  weekly_menus: { meal_slot: string; items: string | null; price: number } | null;
 }
 
 const MONTHS = [
@@ -51,8 +52,9 @@ export default function MealHistoryPage() {
   }, [month, year]);
 
   const monthlyTotal = selections.reduce((acc, s) => {
-    const meal = Array.isArray(s.meals) ? s.meals[0] : s.meals;
-    return acc + Number(s.price ?? meal?.price ?? 0);
+    const special = Array.isArray(s.meals) ? s.meals[0] : s.meals;
+    const regular = Array.isArray(s.weekly_menus) ? s.weekly_menus[0] : s.weekly_menus;
+    return acc + Number(s.price ?? regular?.price ?? special?.price ?? 0);
   }, 0);
 
   const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i);
@@ -119,8 +121,10 @@ export default function MealHistoryPage() {
           {/* Table Rows */}
           <motion.div variants={containerVariants} initial="hidden" animate="show">
             {selections.map((s, i) => {
-              const meal = Array.isArray(s.meals) ? s.meals[0] : s.meals;
-              const isSpecial = meal?.meal_type === "special";
+              const special = Array.isArray(s.meals) ? s.meals[0] : s.meals;
+              const regular = Array.isArray(s.weekly_menus) ? s.weekly_menus[0] : s.weekly_menus;
+              const displayName = regular?.meal_slot ?? special?.name ?? "—";
+              const isSpecial = Boolean(special?.meal_type === "special");
               return (
                 <motion.div
                   key={s.id}
@@ -132,9 +136,11 @@ export default function MealHistoryPage() {
                   </span>
                   <div className="flex items-center gap-1.5">
                     {isSpecial && <Star className="w-3.5 h-3.5 text-accent-gold flex-shrink-0" />}
-                    <span className="font-medium text-text-primary truncate">{meal?.name ?? "—"}</span>
+                    <span className="font-medium text-text-primary truncate">{displayName}</span>
                   </div>
-                  <span className="text-right font-semibold text-text-primary">৳{Number(s.price ?? meal?.price ?? 0).toFixed(0)}</span>
+                  <span className="text-right font-semibold text-text-primary">
+                    ৳{Number(s.price ?? regular?.price ?? special?.price ?? 0).toFixed(0)}
+                  </span>
                 </motion.div>
               );
             })}
