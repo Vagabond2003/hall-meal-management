@@ -210,7 +210,7 @@ export default function MealSelectionPage() {
         ) : (
           <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-3">
             {regularMeals.map((meal) => (
-              <motion.div key={meal.id} variants={itemVariants}>
+              <motion.div key={`${meal.id}-${selectedIds.has(meal.id)}`} variants={itemVariants}>
                 <MealToggleCard
                   mealId={meal.id}
                   name={meal.name}

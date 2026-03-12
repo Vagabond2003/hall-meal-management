@@ -414,7 +414,7 @@ export function DashboardClient({
             className="space-y-3"
           >
             {regularMeals.map((meal) => (
-              <motion.div key={meal.id} variants={itemVariants}>
+              <motion.div key={`${meal.id}-${selectedMealIds.includes(meal.id)}`} variants={itemVariants}>
                 <MealToggleCard
                   mealId={meal.id}
                   name={meal.name}
