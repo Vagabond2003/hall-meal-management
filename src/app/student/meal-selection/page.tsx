@@ -62,8 +62,8 @@ export default function MealSelectionPage() {
         // Fetch daily menu (from weekly_menus) and selections in parallel.
         // NOTE: /api/student/meals (old meals table) is intentionally NOT used here.
         const [menuRes, selRes, settingsRes] = await Promise.all([
-          fetch(`/api/student/daily-menu?date=${dateStr}`, { cache: 'no-store' }),
-          fetch(`/api/student/selections?date=${dateStr}`, { cache: 'no-store' }),
+          fetch(`/api/student/daily-menu?date=${dateStr}&t=${Date.now()}`, { cache: 'no-store' }),
+          fetch(`/api/student/selections?date=${dateStr}&t=${Date.now()}`, { cache: 'no-store' }),
           fetch(`/api/student/settings`),
         ]);
 
