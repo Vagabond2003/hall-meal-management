@@ -174,9 +174,9 @@ export default function StudentDetailClient({ initialStudent }: StudentDetailCli
   const fetchDetails = useCallback(async () => {
     try {
       setLoadingContext(true);
-      const tzOffset = (new Date()).getTimezoneOffset() * 60000;
-      const localISOTime = (new Date(Date.now() - tzOffset)).toISOString().slice(0, 10);
-      const res = await fetch(`/api/admin/students/${student.id}/details?month=${selectedMonth}&year=${selectedYear}&date=${localISOTime}`);
+      const d = new Date();
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const res = await fetch(`/api/admin/students/${student.id}/details?month=${selectedMonth}&year=${selectedYear}&date=${dateStr}`);
       if (!res.ok) throw new Error("Failed to load details");
       const data = await res.json();
       setSelections(data.selections);

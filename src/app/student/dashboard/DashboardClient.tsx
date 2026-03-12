@@ -421,9 +421,14 @@ export function DashboardClient({
                   icon={getMealIcon(meal.name)}
                   description={meal.description ?? ""}
                   price={Number(meal.price)}
-                  initialSelected={selectedMealIds.includes(meal.id)}
+                  isSelected={selectedMealIds.includes(meal.id)}
                   date={localToday}
                   disabled={!mealSelectionEnabled || isPastDeadline}
+                  onToggle={(mealId, selected) => {
+                    setSelectedMealIds(prev => 
+                      selected ? [...prev, mealId] : prev.filter(id => id !== mealId)
+                    );
+                  }}
                 />
               </motion.div>
             ))}

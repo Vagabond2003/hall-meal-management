@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Star } from "lucide-react";
@@ -12,7 +12,7 @@ interface MealToggleCardProps {
   icon: React.ReactNode;
   description: string;
   price: number;
-  initialSelected: boolean;
+  isSelected: boolean; // Controlled prop instead of initialSelected
   date: string; // YYYY-MM-DD
   disabled?: boolean;
   isSpecial?: boolean;
@@ -25,24 +25,18 @@ export function MealToggleCard({
   icon,
   description,
   price,
-  initialSelected,
+  isSelected,
   date,
   disabled = false,
   isSpecial = false,
   onToggle,
 }: MealToggleCardProps) {
-  const [selected, setSelected] = useState(initialSelected);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    setSelected(initialSelected);
-  }, [initialSelected]);
 
   const handleToggle = async () => {
     if (disabled || loading) return;
 
-    const newState = !selected;
-    setSelected(newState);
+    const newState = !isSelected;
     setLoading(true);
 
     try {
@@ -60,14 +54,12 @@ export function MealToggleCard({
       const data = await res.json();
 
       if (!res.ok) {
-        setSelected(!newState); // revert
         toast.error(data.error ?? "Failed to update selection");
       } else {
         toast.success(newState ? `${name} selected for ${date}` : `${name} deselected`);
         onToggle?.(mealId, newState);
       }
     } catch {
-      setSelected(!newState); // revert
       toast.error("Network error. Please try again.");
     } finally {
       setLoading(false);
@@ -78,12 +70,12 @@ export function MealToggleCard({
     <motion.div
       layout
       animate={{
-        backgroundColor: selected
+        backgroundColor: isSelected
           ? isSpecial
             ? "rgba(196, 135, 58, 0.08)"
             : "rgba(26, 58, 42, 0.06)"
           : "rgba(255,255,255,1)",
-        borderColor: selected
+        borderColor: isSelected
           ? isSpecial
             ? "rgba(196, 135, 58, 0.4)"
             : "rgba(26, 58, 42, 0.3)"
@@ -92,7 +84,7 @@ export function MealToggleCard({
       transition={{ duration: 0.25, ease: "easeInOut" }}
       className={cn(
         "relative flex items-center gap-4 p-5 rounded-2xl border-2 transition-shadow",
-        selected ? "shadow-md" : "shadow-sm hover:shadow-md",
+        isSelected ? "shadow-md" : "shadow-sm hover:shadow-md",
         disabled ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
       )}
       onClick={handleToggle}
@@ -100,7 +92,7 @@ export function MealToggleCard({
       {/* Meal Icon */}
       <div className={cn(
         "flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center",
-        selected
+        isSelected
           ? isSpecial ? "bg-accent-gold/20 text-accent-gold" : "bg-primary/10 text-primary"
           : "bg-surface-secondary text-text-secondary"
       )}>
@@ -110,7 +102,7 @@ export function MealToggleCard({
       {/* Info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <h3 className={cn("font-semibold text-sm", selected ? "text-text-primary" : "text-text-secondary")}>
+          <h3 className={cn("font-semibold text-sm", isSelected ? "text-text-primary" : "text-text-secondary")}>
             {name}
           </h3>
           {isSpecial && (
@@ -124,7 +116,7 @@ export function MealToggleCard({
 
       {/* Price */}
       <div className="flex-shrink-0 text-right mr-4">
-        <p className={cn("font-heading font-bold text-lg", selected ? "text-primary" : "text-text-secondary")}>
+        <p className={cn("font-heading font-bold text-lg", isSelected ? "text-primary" : "text-text-secondary")}>
           ৳{price.toFixed(0)}
         </p>
         <p className="text-xs text-text-disabled">/day</p>
@@ -135,13 +127,13 @@ export function MealToggleCard({
         className={cn(
           "flex-shrink-0 relative w-12 h-6 rounded-full transition-colors duration-250",
           loading ? "opacity-60" : "",
-          selected
+          isSelected
             ? isSpecial ? "bg-accent-gold" : "bg-primary"
             : "bg-border"
         )}
       >
         <motion.div
-          animate={{ x: selected ? 24 : 2 }}
+          animate={{ x: isSelected ? 24 : 2 }}
           transition={{ type: "spring", stiffness: 500, damping: 35 }}
           className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm"
         />

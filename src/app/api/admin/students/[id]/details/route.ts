@@ -78,7 +78,6 @@ export async function GET(
 
     // 3. Fetch Today's Selections
     const today = searchParams.get("date") || new Date().toISOString().split('T')[0];
-    console.log(`[Admin Student Detail] Fetching today's selections for date: ${today}, student_id: ${id}`);
     
     const { data: todaySelectionsData, error: todaySelectionsError } = await supabaseAdmin
       .from("meal_selections")
@@ -110,7 +109,6 @@ export async function GET(
     if (todaySelectionsError) {
       console.error("[Admin Student Detail] Error fetching today selections:", todaySelectionsError);
     }
-    console.log(`[Admin Student Detail] Found ${todaySelectionsData?.length || 0} active selections for today.`);
 
     const formattedTodaySelections = todaySelectionsData?.map(s => {
       const meals: any = s.meals;

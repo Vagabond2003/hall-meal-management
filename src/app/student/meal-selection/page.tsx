@@ -217,7 +217,7 @@ export default function MealSelectionPage() {
                   icon={getMealIcon(meal.name)}
                   description={meal.description ?? "Freshly prepared daily meal"}
                   price={Number(meal.price)}
-                  initialSelected={selectedIds.has(meal.id)}
+                  isSelected={selectedIds.has(meal.id)}
                   date={todayStr}
                   disabled={!mealSelectionEnabled || isPastDeadline}
                   onToggle={handleToggle}
