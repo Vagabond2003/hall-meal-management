@@ -13,12 +13,24 @@ import {
   CalendarDays,
   CreditCard,
   Ban,
-  Utensils
+  Utensils,
+  Trash2
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { PDFDownloadLink, Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 import { LoadingSkeleton } from "@/components/shared/LoadingSkeleton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Student {
   id: string;
@@ -161,6 +173,9 @@ const MonthlyReportPDF = ({ student, selections, month, year, billingRecord }: {
 export default function StudentDetailClient({ initialStudent }: StudentDetailClientProps) {
   const [student, setStudent] = useState<Student>(initialStudent);
   const [activeTab, setActiveTab] = useState<TabType>('history');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const router = useRouter();
   
   const [selections, setSelections] = useState<Selection[]>([]);
   const [billing, setBilling] = useState<Billing[]>([]);
@@ -228,6 +243,25 @@ export default function StudentDetailClient({ initialStudent }: StudentDetailCli
       setBilling(prev => prev.map(b => b.id === billingId ? { ...b, is_paid: !currentStatus } : b));
     } catch {
       toast.error("Failed to update billing");
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      setIsDeleting(true);
+      const res = await fetch(`/api/admin/students/${student.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to delete student");
+      }
+      toast.success("Student account deleted");
+      router.push("/admin/students");
+    } catch (error: any) {
+      toast.error(error.message || "An error occurred");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -310,6 +344,13 @@ export default function StudentDetailClient({ initialStudent }: StudentDetailCli
               <Power className="h-4 w-4" /> Reactivate
             </button>
           )}
+
+          <button 
+            onClick={() => setShowDeleteDialog(true)} 
+            className="flex items-center justify-center gap-2 w-full py-2 px-4 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition font-medium text-sm text-center dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/30"
+          >
+            <Trash2 className="h-4 w-4" /> Delete Account
+          </button>
         </div>
       </motion.div>
 
@@ -527,6 +568,41 @@ export default function StudentDetailClient({ initialStudent }: StudentDetailCli
           )}
         </div>
       </motion.div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent className="bg-white dark:bg-[#182218] border-slate-100 dark:border-[#2A3A2B] rounded-2xl animate-in zoom-in-95 fade-in duration-200">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-heading text-xl text-slate-900 dark:text-white">Delete Student Account</AlertDialogTitle>
+            <AlertDialogDescription className="font-sans text-slate-500 dark:text-slate-400">
+              Are you sure you want to delete <span className="font-bold text-slate-700 dark:text-slate-200">{student.name}</span>'s account? 
+              This action cannot be undone. Their meal history and billing records will be kept.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel className="bg-slate-100 text-slate-900 dark:bg-[#2A3A2B] dark:text-white border-0 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl px-6 h-11">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={(e) => {
+                e.preventDefault();
+                handleDelete();
+              }}
+              disabled={isDeleting}
+              className="bg-red-600 text-white hover:bg-red-700 border-0 rounded-xl px-6 h-11 flex items-center justify-center gap-2"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Account"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

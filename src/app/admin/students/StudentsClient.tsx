@@ -2,12 +2,24 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Loader2, MoreVertical, Eye, Power, CheckCircle, ShieldBan, Filter, Ban, Users } from "lucide-react";
+import { Search, Loader2, MoreVertical, Eye, Power, CheckCircle, ShieldBan, Filter, Ban, Users, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { LoadingSkeleton } from "@/components/shared/LoadingSkeleton";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useDebounce } from "@/lib/hooks/use-debounce"; // We need to create this simple hook or use setTimeout inline
+import { useDebounce } from "@/lib/hooks/use-debounce"; 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 
 interface Student {
   id: string;
@@ -27,6 +39,8 @@ export default function StudentsClient() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filter, setFilter] = useState<FilterType>("All");
+  const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const router = useRouter();
   
   // Custom simple debounce implementation inline to avoid creating extra files if not needed
@@ -86,6 +100,27 @@ export default function StudentsClient() {
       ));
     } catch {
       toast.error("An error occurred");
+    }
+  };
+
+  const handleDeleteStudent = async (id: string) => {
+    try {
+      setIsDeleting(true);
+      const res = await fetch(`/api/admin/students/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to delete student");
+      }
+      
+      toast.success("Student account deleted");
+      setStudents(prev => prev.filter(s => s.id !== id));
+      setStudentToDelete(null);
+    } catch (error: any) {
+      toast.error(error.message || "An error occurred during deletion");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -253,13 +288,23 @@ export default function StudentsClient() {
                               <Power className="h-4 w-4" />
                             </button>
                           )}
-                          <Link 
-                            href={`/admin/students/${student.id}`} 
-                            className="text-slate-500 hover:text-primary bg-slate-50 p-1.5 rounded-lg transition-colors dark:bg-slate-800 dark:text-slate-400 dark:hover:text-primary"
-                            title="View Profile"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Link>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setStudentToDelete(student);
+                              }}
+                              className="text-red-500 hover:text-red-700 bg-red-50 p-1.5 rounded-lg transition-colors border border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30 dark:border-red-900/30"
+                              title="Delete Account"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                            <Link 
+                              href={`/admin/students/${student.id}`} 
+                              className="text-slate-500 hover:text-primary bg-slate-50 p-1.5 rounded-lg transition-colors dark:bg-slate-800 dark:text-slate-400 dark:hover:text-primary"
+                              title="View Profile"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Link>
                         </div>
                       </td>
                     </motion.tr>
@@ -286,6 +331,41 @@ export default function StudentsClient() {
           </table>
         </div>
       </motion.div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!studentToDelete} onOpenChange={(open) => !open && setStudentToDelete(null)}>
+        <AlertDialogContent className="bg-white dark:bg-[#182218] border-slate-100 dark:border-[#2A3A2B] rounded-2xl animate-in zoom-in-95 fade-in duration-200">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-heading text-xl text-slate-900 dark:text-white">Delete Student Account</AlertDialogTitle>
+            <AlertDialogDescription className="font-sans text-slate-500 dark:text-slate-400">
+              Are you sure you want to delete <span className="font-bold text-slate-700 dark:text-slate-200">{studentToDelete?.name}</span>'s account? 
+              This action cannot be undone. Their meal history and billing records will be kept.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel className="bg-slate-100 text-slate-900 dark:bg-[#2A3A2B] dark:text-white border-0 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl px-6 h-11">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={(e) => {
+                e.preventDefault();
+                if (studentToDelete) handleDeleteStudent(studentToDelete.id);
+              }}
+              disabled={isDeleting}
+              className="bg-red-600 text-white hover:bg-red-700 border-0 rounded-xl px-6 h-11 flex items-center justify-center gap-2"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Account"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
