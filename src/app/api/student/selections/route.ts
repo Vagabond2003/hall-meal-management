@@ -5,6 +5,8 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { format } from "date-fns";
 import { calculateMonthlyBill } from "@/lib/billing";
 
+export const dynamic = "force-dynamic";
+
 // GET /api/student/selections?date=YYYY-MM-DD
 // Returns meal_selections for the student for a given date (defaults to today)
 export async function GET(request: NextRequest) {
