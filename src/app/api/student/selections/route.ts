@@ -159,17 +159,10 @@ export async function POST(request: NextRequest) {
   };
 
   let error;
-  if (weekly_menu_id) {
-    const { error: upsertErr } = await supabaseAdmin
-      .from("meal_selections")
-      .upsert(payload, { onConflict: "student_id,weekly_menu_id,date" });
-    error = upsertErr;
-  } else {
-    const { error: queryErr } = existing?.id
-      ? await supabaseAdmin.from("meal_selections").update(payload).eq("id", existing.id)
-      : await supabaseAdmin.from("meal_selections").insert(payload);
-    error = queryErr;
-  }
+  const { error: queryErr } = existing?.id
+    ? await supabaseAdmin.from("meal_selections").update(payload).eq("id", existing.id)
+    : await supabaseAdmin.from("meal_selections").insert(payload);
+  error = queryErr;
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
