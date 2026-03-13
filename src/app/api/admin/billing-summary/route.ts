@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
       .from("users")
       .select("id, name, token_number")
       .eq("role", "student")
-      .eq("status", "approved");
+      .eq("is_approved", true).eq("is_active", true);
 
     if (studentsErr) throw new Error(studentsErr.message);
     if (!students || students.length === 0) {
