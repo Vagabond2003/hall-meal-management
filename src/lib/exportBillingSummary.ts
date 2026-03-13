@@ -13,7 +13,7 @@ export function generateExcelExport(data: SummaryRow[], monthStr: string) {
   const excelData: any[][] = [];
   
   // Row 1: Main Title
-  excelData.push(["HALL MEAL HUB - Monthly Bill Summary", "", "", "", "", ""]);
+  excelData.push(["ONLINE HALL MEAL MANAGER - Monthly Bill Summary", "", "", "", "", ""]);
   // Row 2: Month
   excelData.push([`Month: ${monthStr}`, "", "", "", "", ""]);
   // Row 3: Empty
@@ -76,7 +76,7 @@ export function generateExcelExport(data: SummaryRow[], monthStr: string) {
       }
       
       // Title rows (R === 0 or R === 1) should remain plain, but user asked for "Main Title... merged, bold, large font" although later said "keep the title rows (row 1, 2) as plain text, no styling". Wait, user prompt:
-      // "Row 1: "HALL MEAL HUB..." (merged, bold, large font)... Keep the title rows (row 1, 2) as plain text, no styling". I'll just add bold to Row 1 and leave Row 2 plain.
+      // "Row 1: "ONLINE HALL MEAL MANAGER..." (merged, bold, large font)... Keep the title rows (row 1, 2) as plain text, no styling". I'll just add bold to Row 1 and leave Row 2 plain.
       if (R === 0) {
         style.font = { bold: true, sz: 14 };
       }

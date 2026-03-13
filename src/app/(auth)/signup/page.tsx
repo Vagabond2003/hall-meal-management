@@ -88,7 +88,7 @@ export default function SignupPage() {
         <div className="relative z-10 flex-1 flex flex-col">
           <div className="flex items-center gap-3 text-white mb-16">
             <UtensilsCrossed className="w-8 h-8 text-accent-gold" />
-            <span className="font-heading text-xl font-bold tracking-wider">HALL MEAL HUB</span>
+            <span className="font-heading text-xl font-bold tracking-wider">ONLINE HALL MEAL MANAGER</span>
           </div>
 
           <h2 className="font-heading text-4xl text-white font-bold mb-10">

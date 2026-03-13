@@ -108,7 +108,7 @@ export const MonthlyBillSummary = ({ data, monthStr }: MonthlyBillSummaryProps) 
     <Document>
       <Page size="A4" orientation="landscape" style={styles.page}>
         <View style={styles.headerBox}>
-          <Text style={styles.headerTitle}>HALL MEAL HUB</Text>
+          <Text style={styles.headerTitle}>ONLINE HALL MEAL MANAGER</Text>
           <Text style={styles.headerSubtitle}>Monthly Bill Summary — {monthStr}</Text>
           <Text style={styles.headerDate}>Generated on: {new Date().toLocaleDateString('en-US', { timeZone: 'Asia/Dhaka', dateStyle: 'long' })}</Text>
         </View>

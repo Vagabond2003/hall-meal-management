@@ -51,7 +51,7 @@ export function StudentSidebar() {
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-border z-40 flex items-center justify-between px-4">
         <div className="flex items-center gap-2 text-primary">
           <UtensilsCrossed className="w-6 h-6 text-accent-gold" />
-          <span className="font-heading font-bold tracking-wide">HALL MEAL HUB</span>
+          <span className="font-heading font-bold tracking-wide">ONLINE HALL MEAL MANAGER</span>
         </div>
         <button 
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -68,7 +68,7 @@ export function StudentSidebar() {
       )}>
         <div className="flex items-center gap-3 p-6 mb-6 mt-16 lg:mt-0">
           <UtensilsCrossed className="w-8 h-8 text-accent-gold" />
-          <span className="font-heading text-xl font-bold tracking-wider">HALL MEAL HUB</span>
+          <span className="font-heading text-xl font-bold tracking-wider">ONLINE HALL MEAL MANAGER</span>
         </div>
 
         <div className="flex-1 px-4 space-y-2 overflow-y-auto">

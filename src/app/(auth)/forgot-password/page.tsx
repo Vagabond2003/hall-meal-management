@@ -39,7 +39,7 @@ export default function ForgotPasswordPage() {
         <div className="relative z-10">
           <div className="flex items-center gap-3 text-white mb-16">
             <UtensilsCrossed className="w-8 h-8 text-accent-gold" />
-            <span className="font-heading text-xl font-bold tracking-wider">HALL MEAL HUB</span>
+            <span className="font-heading text-xl font-bold tracking-wider">ONLINE HALL MEAL MANAGER</span>
           </div>
 
           <h2 className="font-heading text-4xl lg:text-5xl text-white font-bold leading-tight mb-6">

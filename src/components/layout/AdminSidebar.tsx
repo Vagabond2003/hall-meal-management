@@ -38,7 +38,7 @@ export function AdminSidebar() {
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-border z-40 flex items-center justify-between px-4">
         <div className="flex items-center gap-2 text-primary">
           <UtensilsCrossed className="w-6 h-6 text-accent-gold" />
-          <span className="font-heading font-bold tracking-wide">HALL MEAL HUB</span>
+          <span className="font-heading font-bold tracking-wide">ONLINE HALL MEAL MANAGER</span>
         </div>
         <button 
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
