@@ -27,7 +27,7 @@ interface PendingStudent {
   id: string;
   name: string;
   email: string;
-  rna_number: string;
+  token_number: string;
   created_at: string;
 }
 
@@ -163,7 +163,7 @@ export default function AdminDashboardClient({
                       <div className="mt-1 flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
                         <span>{student.email}</span>
                         <span className="h-1 w-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
-                        <span className="font-mono text-xs">{student.rna_number}</span>
+                        <span className="font-mono text-xs">{student.token_number}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">

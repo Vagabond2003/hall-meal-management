@@ -17,7 +17,7 @@ export async function GET(
 
     const { data: student, error } = await supabaseAdmin
       .from("users")
-      .select("id, name, email, rna_number, is_approved, is_active, meal_selection_enabled, created_at")
+      .select("id, name, email, token_number, is_approved, is_active, meal_selection_enabled, created_at")
       .eq("id", id)
       .eq("role", "student")
       .single();
@@ -44,7 +44,7 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const allowedKeys = ['name', 'rna_number', 'is_approved', 'is_active', 'meal_selection_enabled'];
+    const allowedKeys = ['name', 'token_number', 'is_approved', 'is_active', 'meal_selection_enabled'];
     const updatePayload: Record<string, any> = {};
 
     Object.keys(body).forEach(key => {
@@ -62,7 +62,7 @@ export async function PATCH(
       .update(updatePayload)
       .eq("id", id)
       .eq("role", "student")
-      .select("id, name, email, rna_number, is_approved, is_active, meal_selection_enabled, created_at")
+      .select("id, name, email, token_number, is_approved, is_active, meal_selection_enabled, created_at")
       .single();
 
     if (error) throw error;

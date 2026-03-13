@@ -25,7 +25,7 @@ interface Student {
   id: string;
   name: string;
   email: string;
-  rna_number: string;
+  token_number: string;
   is_approved: boolean;
   is_active: boolean;
   meal_selection_enabled: boolean;
@@ -153,7 +153,7 @@ export default function StudentsClient() {
           <input
             type="text"
             className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl leading-5 bg-white dark:bg-[#182218] dark:border-[#2A3A2B] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-shadow"
-            placeholder="Search by name, email, or RNA number..."
+            placeholder="Search by name, email, or Token number..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -187,7 +187,7 @@ export default function StudentsClient() {
           <table className="min-w-full divide-y divide-slate-200 dark:divide-[#2A3A2B]">
             <thead className="bg-[#F0EFE9] dark:bg-[#1F2B20]">
               <tr>
-                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider dark:text-slate-300">RNA Number</th>
+                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider dark:text-slate-300">Token Number</th>
                 <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider dark:text-slate-300">Student Name</th>
                 <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider dark:text-slate-300">Status</th>
                 <th scope="col" className="px-6 py-4 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider dark:text-slate-300">Meals</th>
@@ -217,7 +217,7 @@ export default function StudentsClient() {
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="font-mono text-sm text-slate-500 font-medium dark:text-slate-400">
-                          #{student.rna_number}
+                          #{student.token_number}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">

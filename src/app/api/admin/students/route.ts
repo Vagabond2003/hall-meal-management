@@ -19,7 +19,7 @@ export async function GET(request: Request) {
 
     let dbQuery = supabaseAdmin
       .from("users")
-      .select("id, name, email, rna_number, is_approved, is_active, meal_selection_enabled, created_at")
+      .select("id, name, email, token_number, is_approved, is_active, meal_selection_enabled, created_at")
       .eq("role", "student");
 
     // Apply Filter
@@ -33,7 +33,7 @@ export async function GET(request: Request) {
 
     // Apply Search
     if (query) {
-      dbQuery = dbQuery.or(`name.ilike.%${query}%,email.ilike.%${query}%,rna_number.ilike.%${query}%`);
+      dbQuery = dbQuery.or(`name.ilike.%${query}%,email.ilike.%${query}%,token_number.ilike.%${query}%`);
     }
 
     dbQuery = dbQuery.order("created_at", { ascending: false });

@@ -5,7 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { name, email, password, role, rna_number, admin_secret_code } = body;
+    const { name, email, password, role, token_number, admin_secret_code } = body;
 
     if (!name || !email || !password || !role) {
       return NextResponse.json(
@@ -36,10 +36,10 @@ export async function POST(req: Request) {
         );
       }
     } else if (role === "student") {
-      // RNA number validation for students
-      if (!rna_number) {
+      // Token number validation for students
+      if (!token_number) {
         return NextResponse.json(
-          { message: "RNA number is required for students" },
+          { message: "Token number is required for students" },
           { status: 400 }
         );
       }
@@ -72,7 +72,7 @@ export async function POST(req: Request) {
       email,
       password: hashedPassword,
       role,
-      rna_number: role === "student" ? rna_number : null,
+      token_number: role === "student" ? token_number : null,
       is_approved: isApproved,
       is_active: true,
       meal_selection_enabled: true,
@@ -82,10 +82,10 @@ export async function POST(req: Request) {
 
     if (error) {
       console.error("Supabase insert error:", error);
-      // Handle unique constraint violation for RNA number just in case
-      if (error.code === "23505" && error.message.includes("rna_number")) {
+      // Handle unique constraint violation for Token number just in case
+      if (error.code === "23505" && error.message.includes("token_number")) {
         return NextResponse.json(
-          { message: "This RNA number is already registered" },
+          { message: "This Token number is already registered" },
           { status: 409 }
         );
       }

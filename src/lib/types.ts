@@ -7,7 +7,7 @@ declare module "next-auth" {
       role: string;
       is_approved: boolean;
       is_active: boolean;
-      rna_number?: string | null;
+      token_number?: string | null;
       meal_selection_enabled?: boolean | null;
     } & DefaultSession["user"];
   }
@@ -16,7 +16,7 @@ declare module "next-auth" {
     role: string;
     is_approved: boolean;
     is_active: boolean;
-    rna_number?: string | null;
+    token_number?: string | null;
     meal_selection_enabled?: boolean | null;
   }
 }
@@ -27,7 +27,7 @@ declare module "next-auth/jwt" {
     role: string;
     is_approved: boolean;
     is_active: boolean;
-    rna_number?: string | null;
+    token_number?: string | null;
     meal_selection_enabled?: boolean | null;
   }
 }

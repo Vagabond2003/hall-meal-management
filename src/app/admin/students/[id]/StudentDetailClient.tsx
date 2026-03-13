@@ -36,7 +36,7 @@ interface Student {
   id: string;
   name: string;
   email: string;
-  rna_number: string;
+  token_number: string;
   is_approved: boolean;
   is_active: boolean;
   meal_selection_enabled: boolean;
@@ -93,8 +93,8 @@ const MonthlyReportPDF = ({ student, selections, month, year, billingRecord }: {
   const totalCost = selections.reduce((sum, s) => sum + Number(s.cost), 0);
   const monthName = MONTH_NAMES[month - 1];
   const joinedYear = new Date(student.created_at).getFullYear();
-  const formatRna = (rna: string) => rna?.toUpperCase().startsWith('RNA') ? rna : `RNA-${joinedYear}-${rna}`;
-  const rnaDisplay = formatRna(student.rna_number);
+  const formatRna = (rna: string) => rna?.toUpperCase().startsWith('Token') ? rna : `Token-${joinedYear}-${rna}`;
+  const rnaDisplay = formatRna(student.token_number);
   
   // If no record exists yet, it's unpaid by definition
   const paymentStatus = billingRecord ? (billingRecord.is_paid ? 'Paid' : 'Unpaid') : 'Unpaid';
@@ -117,7 +117,7 @@ const MonthlyReportPDF = ({ student, selections, month, year, billingRecord }: {
               <Text style={pdfStyles.infoValue}>{student.name}</Text>
             </View>
             <View>
-              <Text style={pdfStyles.infoLabel}>RNA NUMBER</Text>
+              <Text style={pdfStyles.infoLabel}>Token NUMBER</Text>
               <Text style={pdfStyles.infoValue}>{rnaDisplay}</Text>
             </View>
             <View>
@@ -305,7 +305,7 @@ export default function StudentDetailClient({ initialStudent }: StudentDetailCli
               )}
             </h2>
             <div className="mt-2 space-y-1 text-sm text-slate-500 dark:text-slate-400 flex flex-wrap gap-x-6 gap-y-2">
-              <span className="flex items-center gap-1.5"><strong className="text-slate-700 dark:text-slate-300">RNA:</strong> #{student.rna_number}</span>
+              <span className="flex items-center gap-1.5"><strong className="text-slate-700 dark:text-slate-300">Token:</strong> #{student.token_number}</span>
               <span className="flex items-center gap-1.5"><strong className="text-slate-700 dark:text-slate-300">Email:</strong> {student.email}</span>
               <span className="flex items-center gap-1.5"><strong className="text-slate-700 dark:text-slate-300">Joined:</strong> <span suppressHydrationWarning>{format(new Date(student.created_at), "MMM d, yyyy")}</span></span>
             </div>

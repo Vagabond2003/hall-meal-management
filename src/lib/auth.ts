@@ -8,7 +8,7 @@ declare module "next-auth" {
       role: string;
       is_approved: boolean;
       is_active: boolean;
-      rna_number?: string | null;
+      token_number?: string | null;
       meal_selection_enabled?: boolean | null;
     } & DefaultSession["user"];
   }
@@ -17,7 +17,7 @@ declare module "next-auth" {
     role: string;
     is_approved: boolean;
     is_active: boolean;
-    rna_number?: string | null;
+    token_number?: string | null;
     meal_selection_enabled?: boolean | null;
   }
 }
@@ -81,7 +81,7 @@ export const authOptions: NextAuthOptions = {
           role: user.role,
           is_approved: user.is_approved,
           is_active: user.is_active,
-          rna_number: user.rna_number,
+          token_number: user.token_number,
         };
       },
     }),
@@ -93,7 +93,7 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role;
         token.is_approved = user.is_approved;
         token.is_active = user.is_active;
-        token.rna_number = user.rna_number;
+        token.token_number = user.token_number;
         token.meal_selection_enabled = user.meal_selection_enabled;
       }
       // Always re-fetch live values from DB on every token refresh
@@ -121,7 +121,7 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role as string;
         session.user.is_approved = token.is_approved as boolean;
         session.user.is_active = token.is_active as boolean;
-        session.user.rna_number = token.rna_number as string | null;
+        session.user.token_number = token.token_number as string | null;
         session.user.meal_selection_enabled = token.meal_selection_enabled as boolean | null | undefined;
       }
       return session;

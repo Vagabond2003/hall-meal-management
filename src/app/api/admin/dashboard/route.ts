@@ -48,7 +48,7 @@ export async function GET() {
     // Fetch Pending Approvals List
     const { data: pendingApprovalsList } = await supabaseAdmin
       .from("users")
-      .select("id, name, email, rna_number, created_at")
+      .select("id, name, email, token_number, created_at")
       .eq("role", "student")
       .eq("is_approved", false)
       .order("created_at", { ascending: false })

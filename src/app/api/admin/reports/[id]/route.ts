@@ -61,7 +61,7 @@ export async function GET(
     // Fetch student data for report
     const { data: student, error: studentError } = await supabaseAdmin
       .from("users")
-      .select("id, name, rna_number, created_at")
+      .select("id, name, token_number, created_at")
       .eq("id", id)
       .single();
     

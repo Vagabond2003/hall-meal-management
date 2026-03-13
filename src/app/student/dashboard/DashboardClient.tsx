@@ -46,7 +46,7 @@ interface Announcement {
 
 interface DashboardClientProps {
   userName: string;
-  rnaNumber: string;
+  tokenNumber: string;
   totalMeals: number;
   totalCost: number;
   uniqueDays: number;
@@ -76,7 +76,7 @@ const itemVariants = {
 
 export function DashboardClient({
   userName,
-  rnaNumber,
+  tokenNumber,
   totalMeals,
   totalCost,
   uniqueDays,
@@ -212,9 +212,9 @@ export function DashboardClient({
           <div>
             <p className="text-white/60 text-sm font-medium mb-1">Welcome back 👋</p>
             <h1 className="text-3xl font-heading font-bold text-white">{userName}</h1>
-            {rnaNumber && (
+            {tokenNumber && (
               <span className="inline-block mt-2 bg-accent-gold/20 text-accent-gold text-xs font-semibold px-3 py-1 rounded-full border border-accent-gold/30">
-                RNA: {rnaNumber}
+                Token: {tokenNumber}
               </span>
             )}
           </div>

@@ -26,7 +26,7 @@ export default async function StudentDashboardPage() {
     supabaseAdmin.from("settings").select("meal_selection_deadline").limit(1).single(),
     supabaseAdmin
       .from("users")
-      .select("name, rna_number, meal_selection_enabled, is_active, is_approved, created_at")
+      .select("name, token_number, meal_selection_enabled, is_active, is_approved, created_at")
       .eq("id", session.user.id)
       .single(),
   ]);
@@ -54,7 +54,7 @@ export default async function StudentDashboardPage() {
   return (
     <DashboardClient
       userName={user?.name?.split(" ")[0] ?? session.user.name?.split(" ")[0] ?? "Student"}
-      rnaNumber={user?.rna_number ?? ""}
+      tokenNumber={user?.token_number ?? ""}
       totalMeals={totalMeals}
       totalCost={totalCost}
       uniqueDays={uniqueDays}

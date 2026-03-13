@@ -21,7 +21,7 @@ export default async function AdminStudentDetailPage({
   // Fetch the student profile
   const { data: student, error } = await supabaseAdmin
     .from("users")
-    .select("id, name, email, rna_number, is_approved, is_active, meal_selection_enabled, created_at")
+    .select("id, name, email, token_number, is_approved, is_active, meal_selection_enabled, created_at")
     .eq("id", id)
     .eq("role", "student")
     .single();
