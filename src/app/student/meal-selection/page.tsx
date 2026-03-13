@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import MealSelectionClient from "./MealSelectionClient";
+import MealSelectionWrapper from "./MealSelectionWrapper";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -50,9 +50,9 @@ export default async function MealSelectionPage() {
     : [];
 
   return (
-    <MealSelectionClient 
-      menus={menus || []} 
-      initialSelectedIds={selectedIds} 
+    <MealSelectionWrapper 
+      dailyMenus={menus || []} 
+      dailySelectedIds={selectedIds} 
       todayStr={dateStr} 
     />
   );

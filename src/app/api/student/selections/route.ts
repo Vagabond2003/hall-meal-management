@@ -19,6 +19,8 @@ export async function GET(request: NextRequest) {
   const date = searchParams.get("date") ?? format(new Date(), "yyyy-MM-dd");
   const month = searchParams.get("month");
   const year = searchParams.get("year");
+  const weekStart = searchParams.get("weekStart");
+
 
   let query = supabaseAdmin
   .from("meal_selections")
@@ -40,9 +42,15 @@ export async function GET(request: NextRequest) {
     const startDate = `${year}-${month.padStart(2, "0")}-01`;
     const endDate = new Date(Number(year), Number(month), 0); // last day of month
     query = query.gte("date", startDate).lte("date", format(endDate, "yyyy-MM-dd"));
+  } else if (weekStart) {
+    const startDate = new Date(weekStart);
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + 6);
+    query = query.gte("date", format(startDate, "yyyy-MM-dd")).lte("date", format(endDate, "yyyy-MM-dd"));
   } else {
     query = query.eq("date", date);
   }
+
 
   const { data, error } = await query.order("date");
 
@@ -141,6 +149,7 @@ export async function POST(request: NextRequest) {
   }
 
   const payload = {
+    ...(existing?.id ? { id: existing.id } : {}),
     student_id: session.user.id,
     date,
     is_selected: is_selected ?? true,
@@ -149,13 +158,23 @@ export async function POST(request: NextRequest) {
     weekly_menu_id: weekly_menu_id ?? null,
   };
 
-  const { error } = existing?.id
-    ? await supabaseAdmin.from("meal_selections").update(payload).eq("id", existing.id)
-    : await supabaseAdmin.from("meal_selections").insert(payload);
+  let error;
+  if (weekly_menu_id) {
+    const { error: upsertErr } = await supabaseAdmin
+      .from("meal_selections")
+      .upsert(payload, { onConflict: "student_id,weekly_menu_id,date" });
+    error = upsertErr;
+  } else {
+    const { error: queryErr } = existing?.id
+      ? await supabaseAdmin.from("meal_selections").update(payload).eq("id", existing.id)
+      : await supabaseAdmin.from("meal_selections").insert(payload);
+    error = queryErr;
+  }
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
 
   // Recalculate billing
   try {
