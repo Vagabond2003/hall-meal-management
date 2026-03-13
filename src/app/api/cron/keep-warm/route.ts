@@ -21,3 +21,4 @@ export async function GET(request: Request) {
 
   return NextResponse.json({ ok: true, timestamp: new Date().toISOString() });
 }
+// keep warm
