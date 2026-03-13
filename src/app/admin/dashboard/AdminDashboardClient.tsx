@@ -15,6 +15,11 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { StatCard } from "@/components/shared/StatCard";
 import Link from "next/link";
+import { FileText, Table, Loader2 } from "lucide-react";
+import { pdf } from "@react-pdf/renderer";
+import { MonthlyBillSummary } from "@/components/pdf/MonthlyBillSummary";
+import { generateExcelExport } from "@/lib/exportBillingSummary";
+
 
 interface MetricData {
   totalStudents: number;
@@ -51,6 +56,12 @@ export default function AdminDashboardClient({
 }: AdminDashboardClientProps) {
   const [metrics, setMetrics] = useState<MetricData>(initialMetrics);
   const [pendingStudents, setPendingStudents] = useState<PendingStudent[]>(initialPending);
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
+
+  const currentMonthStr = new Date().toLocaleString("en-US", { month: "long", timeZone: "Asia/Dhaka" });
+  const currentYearStr = new Date().toLocaleString("en-US", { year: "numeric", timeZone: "Asia/Dhaka" });
+  const displayMonthYear = `${currentMonthStr} ${currentYearStr}`;
 
   const handleApprove = async (id: string, action: 'approve' | 'reject') => {
     try {
@@ -76,17 +87,84 @@ export default function AdminDashboardClient({
     }
   };
 
+  const fetchBillingData = async () => {
+    const res = await fetch(`/api/admin/billing-summary?t=${Date.now()}`);
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || "Failed to fetch billing data");
+    }
+    const data = await res.json();
+    return data.summary || [];
+  };
+
+  const handleExportPDF = async () => {
+    try {
+      setIsExportingPDF(true);
+      const data = await fetchBillingData();
+      
+      const blob = await pdf(<MonthlyBillSummary data={data} monthStr={displayMonthYear} />).toBlob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `HallMealHub_${currentMonthStr}_${currentYearStr}_BillSummary.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      URL.revokeObjectURL(url);
+      link.remove();
+      
+      toast.success("PDF exported successfully");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to export PDF");
+    } finally {
+      setIsExportingPDF(false);
+    }
+  };
+
+  const handleExportExcel = async () => {
+    try {
+      setIsExportingExcel(true);
+      const data = await fetchBillingData();
+      generateExcelExport(data, displayMonthYear);
+      toast.success("Excel exported successfully");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to export Excel");
+    } finally {
+      setIsExportingExcel(false);
+    }
+  };
+
   return (
+
     <div className="space-y-8 pb-8">
       {/* Page Header */}
       <motion.div 
-        className="flex flex-col gap-2"
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, ease: "easeOut" as const }}
       >
-        <h1 className="text-3xl font-heading font-semibold text-slate-900 dark:text-white">Admin Dashboard</h1>
-        <p className="text-slate-500 dark:text-slate-400">Overview of hall activity and pending tasks.</p>
+        <div>
+          <h1 className="text-3xl font-heading font-semibold text-slate-900 dark:text-white">Admin Dashboard</h1>
+          <p className="text-slate-500 dark:text-slate-400">Overview of hall activity and pending tasks.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleExportPDF}
+            disabled={isExportingPDF || isExportingExcel}
+            className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-xl border border-amber-600 text-amber-600 hover:bg-amber-600/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:border-amber-500 dark:text-amber-500"
+          >
+            {isExportingPDF ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+            Export {currentMonthStr} PDF
+          </button>
+          <button
+            onClick={handleExportExcel}
+            disabled={isExportingExcel || isExportingPDF}
+            className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-xl border border-primary text-primary hover:bg-primary/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isExportingExcel ? <Loader2 className="w-4 h-4 animate-spin" /> : <Table className="w-4 h-4" />}
+            Export {currentMonthStr} Excel
+          </button>
+        </div>
       </motion.div>
 
       {/* Metrics Grid */}
