@@ -113,16 +113,15 @@ export function DashboardClient({
       }
 
       try {
-        const [menuRes, selRes, annRes] = await Promise.all([
+        const [menuResult, selResult, annResult] = await Promise.allSettled([
           fetch(`/api/student/daily-menu?date=${dateStr}`, { cache: 'no-store' }),
           fetch(`/api/student/selections?date=${dateStr}`, { cache: 'no-store' }),
           fetch("/api/announcements")
         ]);
 
-        if (menuRes.ok) {
-          const { menus } = await menuRes.json();
+        if (menuResult.status === 'fulfilled' && menuResult.value.ok) {
+          const { menus } = await menuResult.value.json();
           if (menus && menus.length > 0) {
-            // Build meal cards directly from weekly_menus data
             const menuMeals: Meal[] = menus.map((m: any) => ({
               id: m.id,
               name: m.meal_slot,
@@ -138,21 +137,18 @@ export function DashboardClient({
           }
         }
 
-        if (selRes.ok) {
-          const selData = await selRes.json();
+        if (selResult.status === 'fulfilled' && selResult.value.ok) {
+          const selData = await selResult.value.json();
           const selected = (selData.selections ?? []).map((s: any) => s.weekly_menu_id ?? s.meal_id).filter(Boolean);
           setSelectedMealIds(selected);
-          // Special meals are no longer sourced from the old meals table.
-          // All meal data comes from weekly_menus via /api/student/daily-menu.
         }
 
-        if (annRes.ok) {
-          const annData = await annRes.json();
-          // Take only the 3 most recent
+        if (annResult.status === 'fulfilled' && annResult.value.ok) {
+          const annData = await annResult.value.json();
           setAnnouncements((annData.announcements || []).slice(0, 3));
         }
-      } catch (err) {
-        console.error("Failed to fetch local data", err);
+      } catch {
+        // Network-level failure — silently handle
       } finally {
         setLoading(false);
       }
@@ -181,8 +177,8 @@ export function DashboardClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_read, is_liked })
       });
-    } catch (error) {
-      console.error("Failed to update announcement interaction", error);
+    } catch {
+      // Announcement interaction failed — optimistic update stays
     }
   };
 

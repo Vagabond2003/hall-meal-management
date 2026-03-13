@@ -101,7 +101,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ summary });
   } catch (error: any) {
-    console.error("GET /api/admin/billing-summary error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

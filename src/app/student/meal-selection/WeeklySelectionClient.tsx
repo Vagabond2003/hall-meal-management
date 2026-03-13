@@ -42,8 +42,8 @@ export default function WeeklySelectionClient() {
         const data = await res.json();
         if (data.deadline) setDeadline(data.deadline);
       }
-    } catch (e) {
-      console.error(e);
+    } catch {
+      // Settings fetch failed — use defaults
     }
   };
 
@@ -98,19 +98,24 @@ export default function WeeklySelectionClient() {
     if (!weekStartStr) return;
     setLoading(true);
     try {
-      const [menuRes, selectRes] = await Promise.all([
+      const [menuResult, selectResult] = await Promise.allSettled([
         fetch(`/api/student/weekly-menu?weekStart=${weekStartStr}&t=${Date.now()}`, { cache: 'no-store' }),
         fetch(`/api/student/selections?weekStart=${weekStartStr}&t=${Date.now()}`, { cache: 'no-store' })
       ]);
 
-      if (menuRes.ok && selectRes.ok) {
-        const menuData = await menuRes.json();
-        const selectData = await selectRes.json();
+      if (menuResult.status === 'fulfilled' && menuResult.value.ok) {
+        const menuData = await menuResult.value.json();
         setMenus(menuData.menus || []);
+      }
+      if (selectResult.status === 'fulfilled' && selectResult.value.ok) {
+        const selectData = await selectResult.value.json();
         setSelections(selectData.selections || []);
       }
-    } catch (error) {
-      console.error(error);
+
+      if (menuResult.status === 'rejected' && selectResult.status === 'rejected') {
+        toast.error("Failed to load weekly menu");
+      }
+    } catch {
       toast.error("Failed to load weekly menu");
     } finally {
       setLoading(false);

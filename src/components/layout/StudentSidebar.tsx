@@ -38,8 +38,8 @@ export function StudentSidebar() {
           const data = await res.json();
           setUnreadCount(data.count || 0);
         }
-      } catch (error) {
-        console.error("Failed to fetch unread announcements count", error);
+      } catch {
+        // Failed to fetch unread count
       }
     };
     fetchUnreadCount();

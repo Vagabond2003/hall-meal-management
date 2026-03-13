@@ -33,8 +33,7 @@ export async function GET(request: Request) {
     if (error) throw error;
     
     return NextResponse.json({ menus });
-  } catch (error) {
-    console.error("GET /api/student/daily-menu error:", error);
+  } catch {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

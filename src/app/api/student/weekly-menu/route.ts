@@ -20,12 +20,11 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await supabaseAdmin
     .from("weekly_menus")
-    .select("*")
+    .select("id, day_of_week, meal_slot, items, price")
     .eq("week_start_date", weekStart)
     .order("day_of_week", { ascending: true });
 
   if (error) {
-    console.error("GET /api/student/weekly-menu error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 

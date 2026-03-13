@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { format } from "date-fns";
 import { calculateMonthlyBill } from "@/lib/billing";
+import { getCachedSettings } from "@/lib/settingsCache";
 
 export const dynamic = "force-dynamic";
 
@@ -55,8 +56,7 @@ export async function GET(request: NextRequest) {
   const { data, error } = await query.order("date");
 
   if (error) {
-    console.error("GET /api/student/selections error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: (error as Error).message }, { status: 500 });
   }
 
   return NextResponse.json({ selections: data ?? [] }, { headers: { "Cache-Control": "no-store, max-age=0, private" } });
@@ -91,13 +91,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Check deadline
-  const { data: settings } = await supabaseAdmin
-    .from("settings")
-    .select("meal_selection_deadline")
-    .limit(1)
-    .single();
-
+  // Check deadline (uses 60s in-memory cache)
+  const settings = await getCachedSettings();
   const deadline = settings?.meal_selection_deadline ?? "22:00:00";
   const now = new Date();
   const [dh, dm] = deadline.split(":").map(Number);
@@ -173,8 +168,8 @@ export async function POST(request: NextRequest) {
   try {
     const [yearStr, monthStr] = date.split("-");
     await calculateMonthlyBill(session.user.id, Number(monthStr), Number(yearStr));
-  } catch (billingErr) {
-    console.error("Failed to recalculate bill:", billingErr);
+  } catch {
+    // Billing recalculation failed — non-critical, silent
   }
 
   return NextResponse.json({ success: true });

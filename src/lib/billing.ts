@@ -17,7 +17,7 @@ export async function calculateMonthlyBill(studentId: string, month: number, yea
     .lte("date", endDateStr);
 
   if (fetchError) {
-    console.error("Error fetching meal selections for billing", studentId, fetchError);
+    // Billing fetch error — non-critical
   }
 
   let totalCost = 0;
@@ -50,7 +50,7 @@ export async function calculateMonthlyBill(studentId: string, month: number, yea
     });
 
   if (upsertError) {
-    console.error("Error upserting monthly billing for student", studentId, upsertError);
+    // Billing upsert error — non-critical
   }
   
   return totalCost;

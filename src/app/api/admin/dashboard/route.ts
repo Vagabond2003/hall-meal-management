@@ -93,8 +93,7 @@ export async function GET() {
       pendingApprovalsList: pendingApprovalsList || [],
       activities
     });
-  } catch (error) {
-    console.error("Admin dashboard fetch error:", error);
+  } catch {
     return NextResponse.json(
       { error: "Failed to fetch dashboard data" },
       { status: 500 }

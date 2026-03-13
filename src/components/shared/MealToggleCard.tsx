@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Star } from "lucide-react";
@@ -12,8 +12,8 @@ interface MealToggleCardProps {
   icon: React.ReactNode;
   description: string;
   price: number;
-  isSelected: boolean; // Controlled prop instead of initialSelected
-  date: string; // YYYY-MM-DD
+  isSelected: boolean;
+  date: string;
   disabled?: boolean;
   isSpecial?: boolean;
   onToggle?: (mealId: string, selected: boolean) => void;
@@ -32,12 +32,17 @@ export function MealToggleCard({
   onToggle,
 }: MealToggleCardProps) {
   const [loading, setLoading] = useState(false);
+  const inFlightRef = useRef(false);
 
   const handleToggle = async () => {
-    if (disabled || loading) return;
+    if (disabled || inFlightRef.current) return;
 
     const newState = !isSelected;
+    inFlightRef.current = true;
     setLoading(true);
+
+    // Optimistic UI update — toggle instantly
+    onToggle?.(mealId, newState);
 
     try {
       const res = await fetch("/api/student/selections", {
@@ -51,17 +56,20 @@ export function MealToggleCard({
         }),
       });
 
-      const data = await res.json();
-
       if (!res.ok) {
+        const data = await res.json();
         toast.error(data.error ?? "Failed to update selection");
+        // Revert on failure
+        onToggle?.(mealId, !newState);
       } else {
         toast.success(newState ? `${name} selected for ${date}` : `${name} deselected`);
-        onToggle?.(mealId, newState);
       }
     } catch {
       toast.error("Network error. Please try again.");
+      // Revert on failure
+      onToggle?.(mealId, !newState);
     } finally {
+      inFlightRef.current = false;
       setLoading(false);
     }
   };

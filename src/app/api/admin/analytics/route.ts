@@ -170,7 +170,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error("Analytics Error:", error);
     return NextResponse.json({ error: error.message || "Failed to fetch analytics" }, { status: 500 });
   }
 }
