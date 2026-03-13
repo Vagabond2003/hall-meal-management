@@ -29,21 +29,21 @@ export default async function MealSelectionPage() {
   const sundayDate = String(sundayObj.getDate()).padStart(2, "0");
   const sundayStr = `${sundayYear}-${sundayMonth}-${sundayDate}`;
 
-  // Fetch today's menu directly from supabaseAdmin
-  const { data: menus } = await supabaseAdmin
-    .from("weekly_menus")
-    .select("id, meal_slot, items, price")
-    .eq("week_start_date", sundayStr)
-    .eq("day_of_week", currentDayOfWeek)
-    .eq("is_active", true);
-
-  // Fetch today's selections directly from supabaseAdmin
-  const { data: selections } = await supabaseAdmin
-    .from("meal_selections")
-    .select("weekly_menu_id, meal_id")
-    .eq("student_id", session.user.id)
-    .eq("date", dateStr)
-    .eq("is_selected", true);
+  // Fetch menu and selections in parallel
+  const [{ data: menus }, { data: selections }] = await Promise.all([
+    supabaseAdmin
+      .from("weekly_menus")
+      .select("id, meal_slot, items, price")
+      .eq("week_start_date", sundayStr)
+      .eq("day_of_week", currentDayOfWeek)
+      .eq("is_active", true),
+    supabaseAdmin
+      .from("meal_selections")
+      .select("weekly_menu_id, meal_id")
+      .eq("student_id", session.user.id)
+      .eq("date", dateStr)
+      .eq("is_selected", true)
+  ]);
 
   const selectedIds = selections
     ? selections.map(s => s.weekly_menu_id || s.meal_id).filter(Boolean) as string[]
