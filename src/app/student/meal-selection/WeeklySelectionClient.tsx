@@ -7,7 +7,7 @@ import { toast } from "sonner";
 
 interface Menu {
   id: string;
-  day_of_week: number;
+  date: string;
   meal_slot: string;
   items: string;
   price: number;
@@ -25,7 +25,7 @@ export default function WeeklySelectionClient() {
   const [menus, setMenus] = useState<Menu[]>([]);
   const [selections, setSelections] = useState<Selection[]>([]);
   const [loading, setLoading] = useState(true);
-  const [weekStartStr, setWeekStartStr] = useState<string>("");
+  const [dateRange, setDateRange] = useState<{ startDate: string; endDate: string }>({ startDate: "", endDate: "" });
   const [deadline, setDeadline] = useState<string>("22:00:00");
 
   // Prevent double toggles and track in-flight requests per meal+date
@@ -49,8 +49,10 @@ export default function WeeklySelectionClient() {
 
   const calculateWeekAndDeadlines = useCallback(() => {
     const today = new Date();
-    const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-    setWeekStartStr(todayStr);
+    
+    // Safe date formatter to avoid timezone shifting
+    const fmt = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
     const [dh, dm] = deadline.split(":").map(Number);
     const deadlineTime = new Date();
@@ -61,7 +63,7 @@ export default function WeeklySelectionClient() {
       const dayDate = new Date(today);
       dayDate.setDate(today.getDate() + i);
 
-      const dateStr = `${dayDate.getFullYear()}-${String(dayDate.getMonth()+1).padStart(2,'0')}-${String(dayDate.getDate()).padStart(2,'0')}`;
+      const dateStr = fmt(dayDate);
       const isToday = i === 0;
       const isPast = false; // rolling window: all days are today or future
       const isDeadlinePassed = isToday && today > deadlineTime;
@@ -75,7 +77,11 @@ export default function WeeklySelectionClient() {
         isDeadlinePassed,
       };
     });
+    
     setWeekDays(days);
+    if (days.length > 0) {
+        setDateRange({ startDate: days[0].dateStr, endDate: days[days.length - 1].dateStr });
+    }
   }, [deadline]);
 
   useEffect(() => {
@@ -89,12 +95,12 @@ export default function WeeklySelectionClient() {
   }, [deadline, calculateWeekAndDeadlines]);
 
   const fetchData = useCallback(async () => {
-    if (!weekStartStr) return;
+    if (!dateRange.startDate || !dateRange.endDate) return;
     setLoading(true);
     try {
       const [menuResult, selectResult] = await Promise.allSettled([
-        fetch(`/api/student/weekly-menu?weekStart=${weekStartStr}&t=${Date.now()}`, { cache: 'no-store' }),
-        fetch(`/api/student/selections?weekStart=${weekStartStr}&t=${Date.now()}`, { cache: 'no-store' })
+        fetch(`/api/student/weekly-menu?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}&t=${Date.now()}`, { cache: 'no-store' }),
+        fetch(`/api/student/selections?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}&t=${Date.now()}`, { cache: 'no-store' })
       ]);
 
       if (menuResult.status === 'fulfilled' && menuResult.value.ok) {
@@ -114,7 +120,7 @@ export default function WeeklySelectionClient() {
     } finally {
       setLoading(false);
     }
-  }, [weekStartStr]);
+  }, [dateRange]);
 
   useEffect(() => {
     fetchData();
@@ -212,7 +218,7 @@ export default function WeeklySelectionClient() {
     <div className="space-y-6">
       <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar snap-x snap-mandatory">
         {weekDays.map((day) => {
-          const dayMenus = menus.filter(m => m.day_of_week === day.dayIndex);
+          const dayMenus = menus.filter(m => m.date === day.dateStr);
           const isLocked = day.isPast || day.isDeadlinePassed;
 
           return (

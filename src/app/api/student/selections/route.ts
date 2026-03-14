@@ -20,7 +20,8 @@ export async function GET(request: NextRequest) {
   const date = searchParams.get("date") ?? format(new Date(), "yyyy-MM-dd");
   const month = searchParams.get("month");
   const year = searchParams.get("year");
-  const weekStart = searchParams.get("weekStart");
+  const startDateStr = searchParams.get("startDate");
+  const endDateStr = searchParams.get("endDate");
 
 
   let query = supabaseAdmin
@@ -43,11 +44,8 @@ export async function GET(request: NextRequest) {
     const startDate = `${year}-${month.padStart(2, "0")}-01`;
     const endDate = new Date(Number(year), Number(month), 0); // last day of month
     query = query.gte("date", startDate).lte("date", format(endDate, "yyyy-MM-dd"));
-  } else if (weekStart) {
-    const startDate = new Date(weekStart);
-    const endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + 6);
-    query = query.gte("date", format(startDate, "yyyy-MM-dd")).lte("date", format(endDate, "yyyy-MM-dd"));
+  } else if (startDateStr && endDateStr) {
+    query = query.gte("date", startDateStr).lte("date", endDateStr);
   } else {
     query = query.eq("date", date);
   }
