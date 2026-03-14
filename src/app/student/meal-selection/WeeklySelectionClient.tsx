@@ -49,38 +49,32 @@ export default function WeeklySelectionClient() {
 
   const calculateWeekAndDeadlines = useCallback(() => {
     const today = new Date();
-    const dayOfWeek = today.getDay(); // 0=Sun, 6=Sat
-    const sunday = new Date(today);
-    sunday.setDate(today.getDate() - dayOfWeek);
-    
-    const wStart = `${sunday.getFullYear()}-${String(sunday.getMonth()+1).padStart(2,'0')}-${String(sunday.getDate()).padStart(2,'0')}`;
-    setWeekStartStr(wStart);
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+    setWeekStartStr(todayStr);
 
     const [dh, dm] = deadline.split(":").map(Number);
     const deadlineTime = new Date();
     deadlineTime.setHours(dh, dm, 0, 0);
 
-    const days = [];
-    for (let i = 0; i < 7; i++) {
-      const dayDate = new Date(sunday);
-      dayDate.setDate(sunday.getDate() + i);
-      
+    // Rolling 7-day window: today + next 6 days
+    const days = Array.from({ length: 7 }, (_, i) => {
+      const dayDate = new Date(today);
+      dayDate.setDate(today.getDate() + i);
+
       const dateStr = `${dayDate.getFullYear()}-${String(dayDate.getMonth()+1).padStart(2,'0')}-${String(dayDate.getDate()).padStart(2,'0')}`;
-      
-      const isPast = dayDate < new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      
-      const isToday = dateStr === `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+      const isToday = i === 0;
+      const isPast = false; // rolling window: all days are today or future
       const isDeadlinePassed = isToday && today > deadlineTime;
 
-      days.push({
+      return {
         dateStr,
-        dayIndex: i, // 0 to 6
+        dayIndex: dayDate.getDay(), // actual weekday index (0=Sun)
         dateObj: dayDate,
         isToday,
         isPast,
-        isDeadlinePassed
-      });
-    }
+        isDeadlinePassed,
+      };
+    });
     setWeekDays(days);
   }, [deadline]);
 

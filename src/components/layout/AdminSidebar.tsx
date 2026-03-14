@@ -25,7 +25,6 @@ const adminNavigation = [
   { name: "Students", href: "/admin/students", icon: Users },
   { name: "Weekly Menu", href: "/admin/weekly-menu", icon: Calendar },
   { name: "Announcements", href: "/admin/announcements", icon: Megaphone },
-  { name: "Meal Manager", href: "/admin/meals", icon: UtensilsCrossed },
   { name: "Settings", href: "/admin/settings", icon: Settings },
 ];
 

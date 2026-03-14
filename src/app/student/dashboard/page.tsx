@@ -20,9 +20,11 @@ export default async function StudentDashboardPage() {
   const [selectionsRes, settingsRes, userRes] = await Promise.all([
     supabaseAdmin
       .from("meal_selections")
-      .select("id, date, is_selected, meal_id, price, meals(id, name, description, price, meal_type, date)")
+      .select("id, date, is_selected, price")
       .eq("student_id", session.user.id)
-      .eq("is_selected", true),
+      .eq("is_selected", true)
+      .gte("date", startDate)
+      .lte("date", endDate),
     supabaseAdmin.from("settings").select("meal_selection_deadline").limit(1).single(),
     supabaseAdmin
       .from("users")
@@ -35,15 +37,14 @@ export default async function StudentDashboardPage() {
   const deadline = settingsRes.data?.meal_selection_deadline ?? "22:00:00";
   const user = userRes.data;
 
-  // Current month stats
-  const monthSelections = allSelections.filter((s) => s.date >= startDate && s.date <= endDate);
-  const totalMeals = monthSelections.length;
-  const totalCost = monthSelections.reduce((acc, s) => {
+  // Current month stats — already filtered at DB level
+  const totalMeals = allSelections.length;
+  const totalCost = allSelections.reduce((acc, s) => {
     return acc + Number(s.price ?? 0);
   }, 0);
 
   // Days active = unique dates with selections this month
-  const uniqueDays = new Set(monthSelections.map((s) => s.date)).size;
+  const uniqueDays = new Set(allSelections.map((s) => s.date)).size;
 
   // Deadline check
   const [dh, dm] = deadline.split(":").map(Number);
