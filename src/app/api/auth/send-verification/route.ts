@@ -6,8 +6,8 @@ import crypto from "crypto";
 export async function POST(req: Request) {
   try {
     // Check SMTP credentials
-    if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
-      console.error("Missing GMAIL_USER or GMAIL_APP_PASSWORD environment variables");
+    if (!process.env.BREVO_SMTP_USER || !process.env.BREVO_SMTP_PASS) {
+      console.error("Missing BREVO_SMTP_USER or BREVO_SMTP_PASS environment variables");
       return NextResponse.json(
         { message: "Email service is not configured" },
         { status: 500 }
@@ -67,7 +67,7 @@ export async function POST(req: Request) {
     // Send email using nodemailer
     try {
       await transporter.sendMail({
-        from: `"Hall Meal Management" <${process.env.GMAIL_USER}>`,
+        from: '"Hall Meal Management" <hallmealmanager@gmail.com>',
         to: normalizedEmail,
         subject: "Verify your email to create your account",
         html: `
