@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import { format, addDays, parseISO, startOfDay, isBefore, isSameDay, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, subMonths, isSameMonth } from "date-fns";
-import { Loader2, Lock, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
+import { Loader2, Lock, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock } from "lucide-react";
 import { toast } from "sonner";
+import { useSession } from "next-auth/react";
+import { motion } from "framer-motion";
 
 type MealSlot = {
   id: string;
@@ -24,6 +26,15 @@ const fmt = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 export default function MealSelectionClient() {
+  const { data: session } = useSession();
+  const userName = session?.user?.name ?? "";
+  const tokenNumber = session?.user?.token_number ?? "";
+  const [deadline, setDeadline] = useState("10:00 PM");
+
+  const currentMonthName = new Date().toLocaleString("en-US", {
+    month: "long", year: "numeric", timeZone: "Asia/Dhaka"
+  });
+
   const [activeTab, setActiveTab] = useState<"today" | "week" | "calendar">("week");
   const [currentDate, setCurrentDate] = useState(() => startOfDay(new Date()));
   const [slots, setSlots] = useState<MealSlot[]>([]);
@@ -57,6 +68,15 @@ export default function MealSelectionClient() {
       fetchMonthData(calendarMonth);
     }
   }, [activeTab, calendarMonth]);
+
+  useEffect(() => {
+    fetch("/api/student/settings")
+      .then(res => res.json())
+      .then(data => {
+        if (data.deadline) setDeadline(data.deadline);
+      })
+      .catch(() => {});
+  }, []);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -486,6 +506,37 @@ export default function MealSelectionClient() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="relative overflow-hidden rounded-2xl p-8"
+        style={{
+          background: "linear-gradient(135deg, #1A3A2A 0%, #2D5A40 60%, #1A3A2A 100%)",
+        }}
+      >
+        <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/5 rounded-full" />
+        <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-white/5 rounded-full" />
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <p className="text-white/60 text-sm font-medium mb-1">Welcome back 👋</p>
+            <h1 className="text-3xl font-heading font-bold text-white">{userName}</h1>
+            {tokenNumber && (
+              <span className="inline-block mt-2 bg-accent-gold/20 text-accent-gold text-xs font-semibold px-3 py-1 rounded-full border border-accent-gold/30">
+                Token: {tokenNumber}
+              </span>
+            )}
+          </div>
+          <div className="text-right">
+            <p className="text-white/50 text-xs">{currentMonthName}</p>
+            <p className="text-white/80 text-sm mt-1 flex items-center gap-1 justify-end">
+              <Clock className="w-4 h-4" />
+              Daily cutoff: {deadline}
+            </p>
+          </div>
+        </div>
+      </motion.div>
+
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[#1A3A2A]">Meal Selection</h1>

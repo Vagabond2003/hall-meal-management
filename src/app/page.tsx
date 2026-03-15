@@ -23,5 +23,5 @@ export default async function RootPage() {
     redirect("/admin/dashboard");
   }
 
-  redirect("/student/dashboard");
+  redirect("/student/meal-selection");
 }

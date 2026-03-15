@@ -18,8 +18,8 @@ import { signOut } from "next-auth/react";
 import { Button } from "../ui/button";
 
 const studentNavigation = [
-  { name: "Dashboard", href: "/student/dashboard", icon: LayoutDashboard },
   { name: "Meal Selection", href: "/student/meal-selection", icon: UtensilsCrossed },
+  { name: "Dashboard", href: "/student/dashboard", icon: LayoutDashboard },
   { name: "Meal History", href: "/student/history", icon: History },
   { name: "Announcements", href: "/student/announcements", icon: Megaphone },
   { name: "Monthly Bill", href: "/student/billing", icon: Receipt },

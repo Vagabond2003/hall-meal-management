@@ -14,7 +14,7 @@ export default withAuth(
     // Role-based protection: Admin routes
     if (path.startsWith("/admin")) {
       if (token.role !== "admin") {
-        return NextResponse.redirect(new URL("/student/dashboard", req.url));
+        return NextResponse.redirect(new URL("/student/meal-selection", req.url));
       }
     }
 
