@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSession } from "next-auth/react";
+import FeedbackModal from "@/components/FeedbackModal";
 import { 
   Users, 
   UserCheck, 
@@ -58,6 +60,7 @@ interface AdminDashboardClientProps {
     rating: number;
     comment: string | null;
     created_at: string;
+    weekly_menu_id: string;
   }[];
 }
 
@@ -70,6 +73,13 @@ export default function AdminDashboardClient({
   const [metrics, setMetrics] = useState<MetricData>(initialMetrics);
   const [pendingStudents, setPendingStudents] = useState<PendingStudent[]>(initialPending);
   const [recentFeedback] = useState(initialFeedback);
+  const { data: session } = useSession();
+  const [openFeedback, setOpenFeedback] = useState<{
+    weeklyMenuId: string;
+    date: string;
+    mealSlot: string;
+    comment: string | null;
+  } | null>(null);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const [isExportingExcel, setIsExportingExcel] = useState(false);
 
@@ -366,7 +376,16 @@ export default function AdminDashboardClient({
           ) : (
             <div className="space-y-4">
               {recentFeedback.slice(0, 5).map((f) => (
-                <div key={f.id} className="flex flex-col gap-1 pb-4 border-b border-slate-100 dark:border-[#2A3A2B] last:border-0 last:pb-0">
+                <button
+                  key={f.id}
+                  onClick={() => setOpenFeedback({
+                    weeklyMenuId: f.weekly_menu_id,
+                    date: f.date,
+                    mealSlot: f.meal_slot,
+                    comment: f.comment,
+                  })}
+                  className="w-full text-left flex flex-col gap-1 pb-4 border-b border-slate-100 dark:border-[#2A3A2B] last:border-0 last:pb-0 hover:bg-slate-50 dark:hover:bg-[#1F2B20] rounded-lg px-2 -mx-2 transition-colors cursor-pointer"
+                >
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{f.student_name}</span>
                     <span className="text-xs font-mono text-slate-400 shrink-0">#{f.token_number}</span>
@@ -386,12 +405,24 @@ export default function AdminDashboardClient({
                   <p className="text-[11px] text-slate-400">
                     {format(new Date(f.created_at), "MMM d, h:mm a")}
                   </p>
-                </div>
+                </button>
               ))}
             </div>
           )}
         </motion.div>
       </div>
+
+      {openFeedback && (
+        <FeedbackModal
+          weeklyMenuId={openFeedback.weeklyMenuId}
+          date={openFeedback.date}
+          mealName={openFeedback.mealSlot}
+          mealItems={openFeedback.comment ?? ''}
+          onClose={() => setOpenFeedback(null)}
+          currentUserId={session?.user?.id ?? ''}
+          isAdmin={true}
+        />
+      )}
     </div>
   );
 }

@@ -106,6 +106,7 @@ export default async function AdminDashboardPage() {
     rating: number;
     comment: string | null;
     created_at: string;
+    weekly_menu_id: string;
   }[] = [];
 
   if (feedbackRaw && feedbackRaw.length > 0) {
@@ -133,6 +134,7 @@ export default async function AdminDashboardPage() {
       rating: f.rating,
       comment: f.comment,
       created_at: f.created_at,
+      weekly_menu_id: f.weekly_menu_id,
     }));
   }
 
