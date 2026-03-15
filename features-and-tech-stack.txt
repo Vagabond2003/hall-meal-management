@@ -1,0 +1,109 @@
+================================================================================
+ONLINE HALL MEAL MANAGEMENT SYSTEM - FEATURES & TECH STACK DOCUMENTATION
+================================================================================
+
+This document provides a comprehensive overview of all features, tools, libraries, 
+and techniques used to build the Online Hall Meal Management System.
+
+================================================================================
+I. CORE TECHNOLOGIES & FRAMEWORKS
+================================================================================
+* Next.js (v14/15+ App Router): Core React framework for Server components, routing, and API endpoints.
+* React: UI rendering engine.
+* TypeScript: Strongly typed superset of JavaScript ensuring code reliability.
+* Tailwind CSS (v4): Utility-first CSS framework for rapid and responsive UI styling.
+* Supabase (PostgreSQL): Backend-as-a-service providing a highly scalable database.
+* Vercel: Cloud platform for hosting, CDN, CI/CD, and serverless functions execution.
+
+================================================================================
+II. AUTHENTICATION & SECURITY
+================================================================================
+Tools used: NextAuth.js, bcryptjs, Nodemailer, Resend, Supabase Row Level Security (RLS) policies.
+
+Features:
+* Two-Step Email Verification Signup:
+  - Validates a pre-generated "Invite Code" securely.
+  - Sends a secure OTP/Token to the user's email via Nodemailer/Resend.
+  - Token verification route completes registration and records the student in the database.
+* Role-based Access Control (RBAC):
+  - Differentiates strictly between 'admin' and 'student' routes, UI elements, and API endpoints. 
+  - Middleware & Server-side Session protection (`getServerSession`).
+* Password Management:
+  - `bcryptjs` for secure password hashing.
+  - Complete "Forgot Password" / "Reset Password" workflows with email links.
+* Session Management: NextAuth manages JWT tokens seamlessly holding the user's role and database UUID.
+
+================================================================================
+III. STUDENT FEATURES
+================================================================================
+Tools used: date-fns (Date logic), lucide-react (Icons), framer-motion (Animations), sonner (Toasts).
+
+Features:
+* Student Dashboard:
+  - Real-time display of total cost, meals this month, and active days.
+  - View of recent announcements broadcasted by the admin.
+  - "Upcoming Meals" visualization for the active day.
+* Interactive Meal Selection (The core module):
+  - Dynamic tab system: "Weekly Menu", "Meal Plan/Calendar", "Today".
+  - Arrow Navigation UI: Allowing students to navigate dynamically across past, current, and future weeks/days seamlessly.
+  - Live "Total Estimated Cost" calculation depending on the currently viewed time window or month.
+  - Rolling 7-day window matching server date ranges dynamically.
+  - Smart Lockout System: Automatically locks meals (prevents selection) for past dates or today's date if past the designated cutoff time (e.g., 10:00 AM).
+  - Checkbox toggle UX: Select or deselect meals with a smooth, iPhone-like switch toggle.
+* Global Bulk Select/Deselect Actions: Allows students to toggle an entire week on or off with a single click.
+* Meal Feedback System:
+  - "See Feedback" modal on past and current meals.
+  - Allows students to rate meals (1-5 stars) and write comments.
+  - Strict logic preventing feedback for future/unserved meals.
+* Billing History:
+  - Breakdown of monthly charges.
+  - PDF Generation and Excel downloads for transparency.
+
+================================================================================
+IV. ADMIN FEATURES
+================================================================================
+Tools used: recharts (graphs), xlsx (Excel parsing/generation), @react-pdf/renderer (Dynamic PDFs).
+
+Features:
+* Admin Interactive Dashboard:
+  - Live statistics: Total active students, Total meals selected today, Pending approvals.
+  - Recent feedback overview widget with clickable modals to immediately review student comments.
+  - Analytics visual charts using `recharts`.
+* Weekly Menu Management:
+  - Create, Update, Delete meals for specific days and meal slots (Breakfast, Lunch, Dinner).
+  - Specify item lists and prices for each occurrence.
+  - Built-in "Copy Menu" functionality to quickly replicate a previous week's menu into the future without manual reentry.
+* Student Management & Invite Codes:
+  - Review pending student registrations and securely approve or reject them.
+  - Generate secure text-based Invite Codes required for students to sign up.
+  - View individual student profiles, history, and status.
+  - Manually deactivate or elevate students to Admin roles.
+* Advanced Billing & Reporting:
+  - Aggregate view of all student financials.
+  - Recalculate billing ledgers dynamically.
+  - Automated PDF invoices and Excel (.xlsx) statement exports for administration.
+* Dynamic Meal Slots Management: Customize specific slots (e.g. rename Lunch to "Afternoon Meal" or change active status).
+* Announcements: Broadcast global messages (alerts, warnings, info) to all active students' dashboards.
+
+================================================================================
+V. AUTOMATION & INFRASTRUCTURE
+================================================================================
+Tools used: Vercel Cron Jobs, API Routes.
+
+Features:
+* Automated Tasks (Cron):
+  - Keep-warm route pinging the server frequently to prevent Next.js serverless functions from cold starting.
+  - Month Reset processes to smoothly archive billing ledgers at the end of the month.
+  - Automated Meal Carryover sweeps.
+* Centralized Error Handling & Toast Notifications.
+* Loading skeletons and transitions for highly polished UX without layout shift.
+* Global Date Formatting using `date-fns` to rigidly adhere to standard timestamps and Asia/Dhaka timezones where necessary.
+
+================================================================================
+VI. UI/UX TECHNIQUES & STYLING
+================================================================================
+* Fully Responsive Design: Adapts elegantly to mobile viewing with sticky headers and collapsible sidebars.
+* Glassmorphism & Modern styling: Custom color schemas, borders, and shadows targeting a premium visual experience.
+* Framer Motion: Handcrafted page-entry animations, sliding modals, and smooth visual feedback.
+* Clean Modals & Overlays: Accessible dialog boxes capturing user interaction safely across Admin and Student tiers.
+* Skeleton Loaders & Optimistic UI: Toggling meals updates the User Interface instantly while dispatching network requests in the background for snappy feedback.
