@@ -122,7 +122,7 @@ export function Topbar() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
                 transition={{ duration: 0.15, ease: "easeOut" }}
-                className="absolute right-0 top-full mt-2 w-80 rounded-2xl bg-white shadow-xl border border-slate-100 dark:bg-[#182218] dark:border-[#2A3A2B] overflow-hidden z-50"
+                className="absolute right-0 top-full mt-2 w-[calc(100vw-2rem)] max-w-80 rounded-2xl bg-white shadow-xl border border-slate-100 dark:bg-[#182218] dark:border-[#2A3A2B] overflow-hidden z-50"
               >
                 <div className="p-4 border-b border-slate-100 dark:border-[#2A3A2B] flex justify-between items-center bg-slate-50/50 dark:bg-[#182218]">
                   <h3 className="font-semibold text-slate-800 dark:text-slate-200">Notifications</h3>
