@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -33,6 +33,22 @@ const adminNavigation = [
 export function AdminSidebar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    const fetchPendingCount = async () => {
+      try {
+        const res = await fetch("/api/admin/pending-approvals");
+        if (res.ok) {
+          const data = await res.json();
+          setPendingCount(data.pendingCount);
+        }
+      } catch (error) {
+        console.error("Failed to fetch pending approvals", error);
+      }
+    };
+    fetchPendingCount();
+  }, []);
 
   return (
     <>
@@ -79,7 +95,14 @@ export function AdminSidebar() {
                   <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-accent-gold rounded-r-md"></span>
                 )}
                 <item.icon className={cn("w-5 h-5", isActive ? "text-white" : "text-slate-400 group-hover:text-white")} />
-                {item.name}
+                <div className="flex-1 flex justify-between items-center">
+                  <span>{item.name}</span>
+                  {item.name === "Students" && pendingCount > 0 && (
+                    <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                      {pendingCount}
+                    </span>
+                  )}
+                </div>
               </Link>
             );
           })}

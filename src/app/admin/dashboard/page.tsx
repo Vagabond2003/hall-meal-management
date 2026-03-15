@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
+import Link from "next/link";
+import { AlertCircle, ArrowRight } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import AdminDashboardClient from "./AdminDashboardClient";
@@ -89,7 +91,23 @@ export default async function AdminDashboardPage() {
   ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 8);
 
   return (
-    <div className="mx-auto max-w-7xl">
+    <div className="mx-auto max-w-7xl space-y-6">
+      {pendingApprovalsCount !== null && pendingApprovalsCount > 0 && (
+        <div className="flex items-center justify-between p-4 bg-amber-50 border-l-4 border-[#C4873A] rounded-r-lg shadow-sm">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-6 h-6 text-[#C4873A]" />
+            <p className="text-amber-900 font-medium">
+              {pendingApprovalsCount} student(s) are waiting for approval
+            </p>
+          </div>
+          <Link
+            href="/admin/students"
+            className="flex items-center gap-1 text-sm font-semibold text-[#C4873A] hover:text-amber-800 transition-colors"
+          >
+            Review now <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+      )}
       <AdminDashboardClient
         initialMetrics={metrics}
         initialPending={pendingApprovalsList || []}
