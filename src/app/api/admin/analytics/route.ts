@@ -94,17 +94,32 @@ export async function GET(request: NextRequest) {
     // Calculate Popular Meals
     const mealCounts = new Map<string, number>();
     monthSelections?.forEach(sel => {
-      // Safely access meal_slot; some selections might not have weekly_menus joined if using old meal system, 
-      // but prompt implies checking weekly_menus.
       const menu = sel.weekly_menus as any;
-      const mealName = menu?.meal_slot || "Unknown Meal";
-      mealCounts.set(mealName, (mealCounts.get(mealName) || 0) + 1);
+      const mealName = menu?.meal_slot;
+      if (mealName) {
+        mealCounts.set(mealName, (mealCounts.get(mealName) || 0) + 1);
+      }
     });
 
     const popularMeals = Array.from(mealCounts.entries())
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
+
+    // Calculate Peak Meal Days by Day of Week
+    const dayCounts = new Array(7).fill(0);
+    monthSelections?.forEach(sel => {
+      const dateObj = parseISO(sel.date);
+      dayCounts[dateObj.getDay()]++;
+    });
+
+    const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    // Order results: Monday -> Sunday
+    const orderedIndices = [1, 2, 3, 4, 5, 6, 0];
+    const peakMealDays = orderedIndices.map(dayIdx => ({
+      day: dayNames[dayIdx],
+      count: dayCounts[dayIdx]
+    }));
 
     // 3. Fetch data for Last 6 Months Trends
     const sixMonthsAgoStart = startOfMonth(subMonths(now, 5)); // 6 months inclusive
@@ -165,6 +180,7 @@ export async function GET(request: NextRequest) {
       },
       dailyParticipation,
       popularMeals,
+      peakMealDays,
       monthlyRevenue,
       studentGrowth
     });

@@ -36,6 +36,7 @@ type AnalyticsData = {
   };
   dailyParticipation: { day: number; count: number }[];
   popularMeals: { name: string; count: number }[];
+  peakMealDays: { day: string; count: number }[];
   monthlyRevenue: { month: string; revenue: number }[];
   studentGrowth: { month: string; count: number }[];
 };
@@ -390,6 +391,53 @@ export default function AnalyticsClient() {
                 icon={<Users className="w-8 h-8 opacity-20" />}
                 title="No Data" 
                 description="No student signups yet."
+              />
+            </div>
+          )}
+        </motion.div>
+
+        {/* Peak Meal Days */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.9 }}
+          className="bg-surface rounded-[16px] border border-border/50 p-6 shadow-sm lg:col-span-2"
+        >
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-lg font-sans font-semibold text-text-primary">Peak Meal Days</h2>
+            <p className="text-sm text-text-secondary">Average selections by day of week</p>
+          </div>
+          {data?.peakMealDays && data.peakMealDays.length > 0 ? (
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data.peakMealDays} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E4E2DA" />
+                  <XAxis 
+                    dataKey="day" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fill: "#6B6B63", fontSize: 12 }} 
+                    tickFormatter={(v) => v.slice(0, 3)}
+                  />
+                  <YAxis 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fill: "#6B6B63", fontSize: 12 }} 
+                  />
+                  <Tooltip 
+                    content={<CustomTooltip formatter={(v: any) => [v, "Selections"]} />} 
+                    cursor={{ fill: "#EAF2EC" }} 
+                  />
+                  <Bar dataKey="count" fill="#1A3A2A" radius={[4, 4, 0, 0]} name="Selections" maxBarSize={60} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="h-[300px] flex items-center justify-center">
+              <EmptyState 
+                icon={<BarChart2 className="w-8 h-8 opacity-20" />}
+                title="No Data Yet" 
+                description="No meals recorded for this month."
               />
             </div>
           )}
