@@ -147,21 +147,21 @@ export default function AdminDashboardClient({
           <h1 className="text-3xl font-heading font-semibold text-slate-900 dark:text-white">Admin Dashboard</h1>
           <p className="text-slate-500 dark:text-slate-400">Overview of hall activity and pending tasks.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto mt-4 sm:mt-0">
           <button
             onClick={handleExportPDF}
             disabled={isExportingPDF || isExportingExcel}
-            className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-xl border border-amber-600 text-amber-600 hover:bg-amber-600/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:border-amber-500 dark:text-amber-500"
+            className="flex items-center justify-center gap-2 px-4 py-3 sm:py-2 text-sm font-medium rounded-xl border border-amber-600 text-amber-600 hover:bg-amber-600/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:border-amber-500 dark:text-amber-500 w-full sm:w-auto"
           >
-            {isExportingPDF ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+            {isExportingPDF ? <Loader2 className="w-5 h-5 sm:w-4 sm:h-4 animate-spin" /> : <FileText className="w-5 h-5 sm:w-4 sm:h-4" />}
             Export {currentMonthStr} PDF
           </button>
           <button
             onClick={handleExportExcel}
             disabled={isExportingExcel || isExportingPDF}
-            className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-xl border border-primary text-primary hover:bg-primary/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center justify-center gap-2 px-4 py-3 sm:py-2 text-sm font-medium rounded-xl border border-primary text-primary hover:bg-primary/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
           >
-            {isExportingExcel ? <Loader2 className="w-4 h-4 animate-spin" /> : <Table className="w-4 h-4" />}
+            {isExportingExcel ? <Loader2 className="w-5 h-5 sm:w-4 sm:h-4 animate-spin" /> : <Table className="w-5 h-5 sm:w-4 sm:h-4" />}
             Export {currentMonthStr} Excel
           </button>
         </div>
@@ -244,17 +244,17 @@ export default function AdminDashboardClient({
                         <span className="font-mono text-xs">{student.token_number}</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex w-full sm:w-auto sm:items-center gap-2 mt-2 sm:mt-0">
                       <button
                         onClick={() => handleApprove(student.id, 'reject')}
-                        className="flex items-center justify-center rounded-lg border border-red-200 bg-white p-2 text-red-600 transition-all hover:bg-red-50 hover:text-red-700 dark:border-red-900/50 dark:bg-transparent dark:text-red-400 dark:hover:bg-red-900/20"
+                        className="flex-1 sm:flex-none flex items-center justify-center rounded-lg border border-red-200 bg-white p-3 sm:p-2 text-red-600 transition-all hover:bg-red-50 hover:text-red-700 dark:border-red-900/50 dark:bg-transparent dark:text-red-400 dark:hover:bg-red-900/20 min-h-[44px] sm:min-h-0"
                         title="Reject"
                       >
                         <XCircle className="h-5 w-5" />
                       </button>
                       <button
                         onClick={() => handleApprove(student.id, 'approve')}
-                        className="flex items-center justify-center gap-2 rounded-lg bg-green-600 py-2 px-4 text-sm font-medium text-white transition-all hover:bg-green-700 hover:shadow-md dark:bg-green-700 dark:hover:bg-green-600"
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-lg bg-green-600 py-3 sm:py-2 px-4 text-sm font-medium text-white transition-all hover:bg-green-700 hover:shadow-md dark:bg-green-700 dark:hover:bg-green-600 min-h-[44px] sm:min-h-0"
                       >
                         <CheckCircle className="h-4 w-4" />
                         Approve

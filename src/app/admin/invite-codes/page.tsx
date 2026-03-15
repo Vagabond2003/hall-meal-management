@@ -254,8 +254,8 @@ export default function InviteCodesPage() {
         </motion.div>
       ) : (
         <div className="bg-white border border-border/50 rounded-2xl shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto w-full">
+            <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-border/50 bg-slate-50/50">
                   <th className="text-left py-3.5 px-4 font-semibold text-text-secondary">Code</th>
@@ -291,13 +291,13 @@ export default function InviteCodesPage() {
                       {code.status === "available" && (
                         <button
                           onClick={() => handleCopy(code.code, code.id)}
-                          className="p-2 rounded-lg text-text-secondary hover:text-primary hover:bg-primary/5 transition-colors"
+                          className="p-3 sm:p-2 min-h-[44px] sm:min-h-0 rounded-lg text-text-secondary hover:text-primary hover:bg-primary/5 transition-colors inline-flex items-center justify-center"
                           title="Copy code"
                         >
                           {copiedId === code.id ? (
-                            <Check className="w-4 h-4 text-emerald-500" />
+                            <Check className="w-5 h-5 sm:w-4 sm:h-4 text-emerald-500" />
                           ) : (
-                            <Copy className="w-4 h-4" />
+                            <Copy className="w-5 h-5 sm:w-4 sm:h-4" />
                           )}
                         </button>
                       )}

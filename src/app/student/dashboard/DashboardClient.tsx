@@ -229,7 +229,7 @@ export function DashboardClient({
         variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+        className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
       >
         <motion.div variants={itemVariants}>
           <StatCard

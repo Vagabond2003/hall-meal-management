@@ -50,32 +50,31 @@ export function AdminSidebar() {
       }
     };
     fetchPendingCount();
+
+    const handleToggle = () => setMobileMenuOpen(prev => !prev);
+    window.addEventListener('toggleMobileMenu', handleToggle);
+    return () => window.removeEventListener('toggleMobileMenu', handleToggle);
   }, []);
 
   return (
     <>
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-border z-40 flex items-center justify-between px-4">
-        <div className="flex items-center gap-2 text-primary">
-          <UtensilsCrossed className="w-6 h-6 text-accent-gold" />
-          <span className="font-heading font-bold tracking-wide">ONLINE HALL MEAL MANAGER</span>
-        </div>
-        <button 
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="p-2 text-text-secondary hover:text-primary transition-colors"
-        >
-          {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
-      </div>
-
       <nav className={cn(
         "fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 border-r border-slate-800 text-slate-300 flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0",
         mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
       )}>
-        <div className="flex items-center gap-3 p-6 mb-6 mt-16 lg:mt-0">
-          <div className="w-8 h-8 bg-accent-gold/20 rounded-md flex items-center justify-center">
-            <UtensilsCrossed className="w-5 h-5 text-accent-gold" />
+        <div className="flex items-center justify-between p-6 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-accent-gold/20 rounded-md flex items-center justify-center shrink-0">
+              <UtensilsCrossed className="w-5 h-5 text-accent-gold" />
+            </div>
+            <span className="font-heading text-lg font-bold tracking-wider text-white line-clamp-1">ADMIN PORTAL</span>
           </div>
-          <span className="font-heading text-xl font-bold tracking-wider text-white">ADMIN PORTAL</span>
+          <button 
+            onClick={() => setMobileMenuOpen(false)}
+            className="lg:hidden p-1 text-slate-400 hover:text-white"
+          >
+            <X className="w-6 h-6" />
+          </button>
         </div>
 
         <div className="flex-1 px-4 space-y-2 overflow-y-auto">
@@ -124,7 +123,7 @@ export function AdminSidebar() {
 
       {mobileMenuOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          className="fixed inset-0 bg-black/60 z-40 lg:hidden backdrop-blur-sm"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}

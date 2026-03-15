@@ -183,7 +183,7 @@ export default function StudentsClient() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, delay: 0.2, ease: "easeOut" as const }}
       >
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto w-full">
           <table className="min-w-full divide-y divide-slate-200 dark:divide-[#2A3A2B]">
             <thead className="bg-[#F0EFE9] dark:bg-[#1F2B20]">
               <tr>
@@ -243,7 +243,7 @@ export default function StudentsClient() {
                         <button
                           onClick={() => handleMealToggle(student.id, student.meal_selection_enabled)}
                           disabled={!student.is_approved}
-                          className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                          className={`relative inline-flex h-8 w-14 sm:h-6 sm:w-11 items-center flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
                             !student.is_approved ? 'opacity-50 cursor-not-allowed' : ''
                           } ${
                             student.meal_selection_enabled ? 'bg-green-600' : 'bg-slate-200 dark:bg-slate-700'
@@ -253,8 +253,8 @@ export default function StudentsClient() {
                         >
                           <span className="sr-only">Toggle meal selection</span>
                           <span
-                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                              student.meal_selection_enabled ? 'translate-x-5' : 'translate-x-0'
+                            className={`pointer-events-none inline-block h-6 w-6 sm:h-5 sm:w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                              student.meal_selection_enabled ? 'translate-x-6 sm:translate-x-5' : 'translate-x-0'
                             }`}
                           />
                         </button>
@@ -264,28 +264,28 @@ export default function StudentsClient() {
                           {!student.is_approved && (
                             <button 
                               onClick={() => handleStatusUpdate(student.id, 'approve')}
-                              className="text-green-600 hover:text-green-900 bg-green-50 p-1.5 rounded-lg transition-colors tooltip tooltip-left"
+                              className="text-green-600 hover:text-green-900 bg-green-50 p-2 sm:p-1.5 min-h-[44px] sm:min-h-0 rounded-lg transition-colors tooltip tooltip-left flex items-center justify-center"
                               title="Approve"
                             >
-                              <CheckCircle className="h-4 w-4" />
+                              <CheckCircle className="h-5 w-5 sm:h-4 sm:w-4" />
                             </button>
                           )}
                           {student.is_approved && student.is_active && (
                             <button 
                               onClick={() => handleStatusUpdate(student.id, 'deactivate')}
-                              className="text-amber-600 hover:text-amber-900 bg-amber-50 p-1.5 rounded-lg transition-colors tooltip tooltip-left"
+                              className="text-amber-600 hover:text-amber-900 bg-amber-50 p-2 sm:p-1.5 min-h-[44px] sm:min-h-0 rounded-lg transition-colors tooltip tooltip-left flex items-center justify-center"
                               title="Deactivate"
                             >
-                              <ShieldBan className="h-4 w-4" />
+                              <ShieldBan className="h-5 w-5 sm:h-4 sm:w-4" />
                             </button>
                           )}
                           {student.is_approved && !student.is_active && (
                             <button 
                               onClick={() => handleStatusUpdate(student.id, 'activate')}
-                              className="text-green-600 hover:text-green-900 bg-green-50 p-1.5 rounded-lg transition-colors tooltip tooltip-left"
+                              className="text-green-600 hover:text-green-900 bg-green-50 p-2 sm:p-1.5 min-h-[44px] sm:min-h-0 rounded-lg transition-colors tooltip tooltip-left flex items-center justify-center"
                               title="Reactivate"
                             >
-                              <Power className="h-4 w-4" />
+                              <Power className="h-5 w-5 sm:h-4 sm:w-4" />
                             </button>
                           )}
                             <button 
@@ -293,17 +293,17 @@ export default function StudentsClient() {
                                 e.stopPropagation();
                                 setStudentToDelete(student);
                               }}
-                              className="text-red-500 hover:text-red-700 bg-red-50 p-1.5 rounded-lg transition-colors border border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30 dark:border-red-900/30"
+                              className="text-red-500 hover:text-red-700 bg-red-50 p-2 sm:p-1.5 min-h-[44px] sm:min-h-0 rounded-lg transition-colors border border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30 dark:border-red-900/30 flex items-center justify-center"
                               title="Delete Account"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-5 w-5 sm:h-4 sm:w-4" />
                             </button>
                             <Link 
                               href={`/admin/students/${student.id}`} 
-                              className="text-slate-500 hover:text-primary bg-slate-50 p-1.5 rounded-lg transition-colors dark:bg-slate-800 dark:text-slate-400 dark:hover:text-primary"
+                              className="text-slate-500 hover:text-primary bg-slate-50 p-2 sm:p-1.5 min-h-[44px] sm:min-h-0 rounded-lg transition-colors dark:bg-slate-800 dark:text-slate-400 dark:hover:text-primary flex items-center justify-center"
                               title="View Profile"
                             >
-                              <Eye className="h-4 w-4" />
+                              <Eye className="h-5 w-5 sm:h-4 sm:w-4" />
                             </Link>
                         </div>
                       </td>

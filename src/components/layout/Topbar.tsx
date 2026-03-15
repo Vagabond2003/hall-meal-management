@@ -1,7 +1,7 @@
 "use client";
 
 import { signOut, useSession } from "next-auth/react";
-import { Bell, UserCircle, LogOut, Settings, Utensils, UserPlus, Loader2 } from "lucide-react";
+import { Bell, UserCircle, LogOut, Settings, Utensils, UserPlus, Loader2, Menu } from "lucide-react";
 import { Skeleton } from "../ui/skeleton";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -70,8 +70,21 @@ export function Topbar() {
   const displayRole = session?.user?.role || (isStudent ? "student" : isAdmin ? "admin" : "user");
 
   return (
-    <header className="h-16 lg:h-20 bg-background/80 backdrop-blur-md sticky top-0 md:top-0 lg:top-0 z-30 border-b border-border px-6 flex items-center justify-between mt-16 lg:mt-0">
-      <div className="hidden sm:block">
+    <header className="h-16 lg:h-20 bg-background/80 backdrop-blur-md sticky top-0 md:top-0 lg:top-0 z-30 border-b border-border px-4 lg:px-6 flex items-center justify-between lg:mt-0 shadow-sm lg:shadow-none">
+      <div className="flex items-center gap-3 lg:hidden">
+        <button 
+          onClick={() => window.dispatchEvent(new CustomEvent('toggleMobileMenu'))}
+          className="p-2 -ml-2 text-text-secondary hover:text-primary transition-colors focus:outline-none"
+        >
+          <Menu className="w-6 h-6" />
+        </button>
+        <div className="flex items-center gap-2 text-primary">
+          <Utensils className="w-5 h-5 text-accent-gold" />
+          <span className="font-heading font-bold text-sm tracking-wide line-clamp-1">OHMM</span>
+        </div>
+      </div>
+
+      <div className="hidden lg:block">
         <p className="text-text-secondary text-sm font-medium">{currentDate}</p>
         <h2 className="text-xl font-heading font-bold text-text-primary capitalize">
           Welcome back
@@ -80,8 +93,8 @@ export function Topbar() {
       </div>
       
       {/* Fallback for mobile since the greeting is hidden */}
-      <h2 className="text-lg font-heading font-bold text-text-primary sm:hidden capitalize">
-        {isStudent ? "Student Dashboard" : isAdmin ? "Admin Dashboard" : "Dashboard"}
+      <h2 className="hidden sm:block lg:hidden text-lg font-heading font-bold text-text-primary capitalize line-clamp-1">
+        {isStudent ? "Student Dash" : isAdmin ? "Admin Dash" : "Dashboard"}
       </h2>
 
       <div className="flex items-center gap-4">
@@ -160,7 +173,7 @@ export function Topbar() {
               setShowUser(!showUser);
               setShowBell(false);
             }}
-            className="flex items-center gap-3 w-full text-left focus:outline-none group rounded-full sm:rounded-none sm:hover:opacity-80 transition-opacity"
+            className="flex items-center gap-2 lg:gap-3 w-full text-left focus:outline-none group rounded-full sm:rounded-none sm:hover:opacity-80 transition-opacity"
           >
             {status === "loading" ? (
               <Skeleton className="h-9 w-9 rounded-full" />
