@@ -109,34 +109,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "rating must be between 1 and 5" }, { status: 400 });
   }
 
-  // Only allow feedback on past dates (BD timezone)
-  const bdToday = new Date(
-    new Date().toLocaleString("en-US", { timeZone: "Asia/Dhaka" })
-  )
-    .toISOString()
-    .split("T")[0];
-
-  if (date >= bdToday) {
-    return NextResponse.json({ error: "Can only review past meals" }, { status: 403 });
-  }
-
-  // Student must have a meal_selection for this menu+date with is_selected=true
-  const { data: selection } = await supabaseAdmin
-    .from("meal_selections")
-    .select("id")
-    .eq("student_id", session.user.id)
-    .eq("weekly_menu_id", weekly_menu_id)
-    .eq("date", date)
-    .eq("is_selected", true)
-    .maybeSingle();
-
-  if (!selection) {
-    return NextResponse.json(
-      { error: "You can only review meals you have eaten" },
-      { status: 403 }
-    );
-  }
-
   // Upsert feedback
   const { error } = await supabaseAdmin.from("meal_feedback").upsert(
     {

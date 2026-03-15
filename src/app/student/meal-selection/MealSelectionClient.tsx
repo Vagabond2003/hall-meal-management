@@ -463,7 +463,7 @@ export default function MealSelectionClient() {
                            </div>
                         </div>
                      )}
-                     {locked && menu && (
+                     {menu && (
                        <button
                          onClick={(e) => {
                            e.stopPropagation();
@@ -690,7 +690,7 @@ export default function MealSelectionClient() {
                                 </div>
                               </div>
                             </div>
-                                {locked && menu && (
+                                {menu && (
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
