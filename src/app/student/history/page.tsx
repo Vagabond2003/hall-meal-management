@@ -39,9 +39,9 @@ export default function MealHistoryPage() {
     const fetchHistory = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`/api/student/selections?month=${month}&year=${year}`);
+        const res = await fetch(`/api/student/history?month=${month}&year=${year}`);
         const data = await res.json();
-        setSelections(data.selections ?? []);
+        setSelections(data.history ?? []);
       } catch {
         toast.error("Failed to load meal history");
       } finally {
@@ -138,6 +138,9 @@ export default function MealHistoryPage() {
                     {isSpecial && <Star className="w-3.5 h-3.5 text-accent-gold flex-shrink-0" />}
                     <span className="font-medium text-text-primary truncate">{displayName}</span>
                   </div>
+                  <span className="hidden sm:block text-text-secondary truncate">
+                    {regular?.items ?? special?.description ?? "—"}
+                  </span>
                   <span className="text-right font-semibold text-text-primary">
                     ৳{Number(s.price ?? regular?.price ?? special?.price ?? 0).toFixed(0)}
                   </span>
