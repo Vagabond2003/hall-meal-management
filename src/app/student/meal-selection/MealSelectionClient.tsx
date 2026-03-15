@@ -50,6 +50,14 @@ export default function MealSelectionClient() {
   const [calendarMenus, setCalendarMenus] = useState<MenuEntry[]>([]);
   const [calendarSelections, setCalendarSelections] = useState<string[]>([]);
   
+  // Navigation Offsets
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [todayOffset, setTodayOffset] = useState(0);
+
+  // Computed base dates
+  const weekBaseDate = addDays(currentDate, weekOffset * 7);
+  const todayViewDate = addDays(currentDate, todayOffset);
+  
   const [isLoading, setIsLoading] = useState(true);
   const [isCalendarLoading, setIsCalendarLoading] = useState(false);
   
@@ -63,10 +71,12 @@ export default function MealSelectionClient() {
     mealItems: string;
   } | null>(null);
 
-  // Fetch initial data for today/week
+  // Fetch initial data for today/week based on offset
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (activeTab !== "calendar") {
+      fetchData();
+    }
+  }, [weekOffset, todayOffset, activeTab]);
 
   // Fetch data for calendar whenever the viewed month changes, but only if calendar tab is active
   // Actually, let's fetch calendar data immediately when switching to the tab or changing month
@@ -98,8 +108,11 @@ export default function MealSelectionClient() {
       }
 
       // Fetch menus and slots for rolling 7-day window
-      const todayStr = fmt(currentDate);
-      const endDateStr = fmt(addDays(currentDate, 6));
+      const base = activeTab === "today"
+        ? addDays(startOfDay(new Date()), todayOffset)
+        : addDays(startOfDay(new Date()), weekOffset * 7);
+      const todayStr = fmt(base);
+      const endDateStr = fmt(addDays(base, activeTab === "today" ? 0 : 6));
       
       const menuRes = await fetch(`/api/student/weekly-menu?startDate=${todayStr}&endDate=${endDateStr}`);
       if (!menuRes.ok) throw new Error("Failed to fetch menus");
@@ -570,7 +583,7 @@ export default function MealSelectionClient() {
         
         <div className="flex bg-white rounded-lg p-1 border border-[#E4E2DA]">
           <button
-            onClick={() => setActiveTab("week")}
+            onClick={() => { setActiveTab("week"); setWeekOffset(0); }}
             className={`px-4 flex-1 sm:flex-none py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 text-sm font-medium rounded-md transition-colors ${
               activeTab === "week" ? "bg-[#1A3A2A] text-white" : "text-gray-600 hover:bg-gray-50"
             }`}
@@ -586,7 +599,7 @@ export default function MealSelectionClient() {
             Meal Plan
           </button>
           <button
-            onClick={() => setActiveTab("today")}
+            onClick={() => { setActiveTab("today"); setTodayOffset(0); }}
             className={`px-4 flex-1 sm:flex-none py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 text-sm font-medium rounded-md transition-colors ${
               activeTab === "today" ? "bg-[#1A3A2A] text-white" : "text-gray-600 hover:bg-gray-50"
             }`}
@@ -606,7 +619,54 @@ export default function MealSelectionClient() {
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-[#E4E2DA] shadow-sm overflow-hidden">
+        <div className="flex flex-col gap-3">
+          {(activeTab === "week" || activeTab === "today") && (
+            <div className="flex items-center justify-between px-4 py-3 bg-white rounded-xl border border-[#E4E2DA] shadow-sm">
+              <button
+                onClick={() => {
+                  if (activeTab === "today") setTodayOffset(prev => prev - 1);
+                  else setWeekOffset(prev => prev - 1);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E4E2DA] text-[#1A3A2A] hover:bg-gray-50 transition-colors text-sm font-medium"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                {activeTab === "today" ? "Previous day" : "Previous week"}
+              </button>
+
+              <div className="flex flex-col items-center">
+                <span className="text-sm font-semibold text-[#1A3A2A]">
+                  {activeTab === "today"
+                    ? format(addDays(currentDate, todayOffset), "EEEE, MMM d yyyy")
+                    : `${format(addDays(currentDate, weekOffset * 7), "MMM d")} – ${format(addDays(currentDate, weekOffset * 7 + 6), "MMM d, yyyy")}`
+                  }
+                </span>
+                {(weekOffset !== 0 || todayOffset !== 0) && (
+                  <button
+                    onClick={() => {
+                      setWeekOffset(0);
+                      setTodayOffset(0);
+                    }}
+                    className="text-xs text-[#C4873A] hover:underline mt-0.5"
+                  >
+                    Back to today
+                  </button>
+                )}
+              </div>
+
+              <button
+                onClick={() => {
+                  if (activeTab === "today") setTodayOffset(prev => prev + 1);
+                  else setWeekOffset(prev => prev + 1);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E4E2DA] text-[#1A3A2A] hover:bg-gray-50 transition-colors text-sm font-medium"
+              >
+                {activeTab === "today" ? "Next day" : "Next week"}
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+          
+          <div className="bg-white rounded-xl border border-[#E4E2DA] shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[600px]">
               <thead>
@@ -623,9 +683,11 @@ export default function MealSelectionClient() {
               </thead>
               <tbody className="divide-y divide-[#E4E2DA]">
                 {daysToShow.map(i => {
-                  const dayDate = addDays(currentDate, i);
+                  const dayDate = activeTab === "today"
+                    ? addDays(currentDate, todayOffset)
+                    : addDays(currentDate, weekOffset * 7 + i);
                   const dateStr = format(dayDate, "yyyy-MM-dd");
-                  const isToday = i === 0;
+                  const isToday = isSameDay(dayDate, currentDate);
                   
                   return (
                     <tr key={i} className="hover:bg-gray-50 group">
@@ -718,6 +780,7 @@ export default function MealSelectionClient() {
             </table>
           </div>
         </div>
+      </div>
       )}
       
       <div className="bg-white p-4 rounded-xl border border-[#E4E2DA] shadow-sm flex flex-col sm:flex-row justify-between items-center text-[#1A3A2A] gap-2">
