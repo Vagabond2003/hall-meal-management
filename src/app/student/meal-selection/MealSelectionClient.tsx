@@ -24,7 +24,7 @@ const fmt = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 export default function MealSelectionClient() {
-  const [activeTab, setActiveTab] = useState<"today" | "week" | "calendar">("today");
+  const [activeTab, setActiveTab] = useState<"today" | "week" | "calendar">("week");
   const [currentDate, setCurrentDate] = useState(() => startOfDay(new Date()));
   const [slots, setSlots] = useState<MealSlot[]>([]);
   
@@ -43,6 +43,7 @@ export default function MealSelectionClient() {
   
   // Track ongoing toggles to prevent race conditions
   const [togglingCells, setTogglingCells] = useState<Set<string>>(new Set());
+  const [isBulkLoading, setIsBulkLoading] = useState(false);
 
   // Fetch initial data for today/week
   useEffect(() => {
@@ -227,6 +228,31 @@ export default function MealSelectionClient() {
     return getActiveMenus()
       .filter(m => getActiveSelections().includes(m.id))
       .reduce((sum, m) => sum + (m.price || 0), 0);
+  };
+
+  const handleBulkToggle = async (action: "on" | "off") => {
+    const fromDate = fmt(selectedDate);
+    setIsBulkLoading(true);
+    try {
+      const res = await fetch("/api/student/bulk-selection", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ from_date: fromDate, action }),
+      });
+      if (!res.ok) throw new Error("Bulk update failed");
+      
+      // Refresh calendar data to reflect changes
+      await fetchMonthData(calendarMonth);
+      toast.success(
+        action === "off"
+          ? "All meals turned off from " + fromDate + " onwards"
+          : "All meals turned on from " + fromDate + " onwards"
+      );
+    } catch {
+      toast.error("Failed to update meals. Please try again.");
+    } finally {
+      setIsBulkLoading(false);
+    }
   };
 
   const renderCalendar = () => {
@@ -421,6 +447,25 @@ export default function MealSelectionClient() {
           )}
         </div>
         
+        {!isBefore(selectedDate, startOfDay(currentDate)) && (
+          <div className="px-4 py-3 border-t border-[#E4E2DA] bg-white flex flex-col sm:flex-row gap-2">
+            <button
+              onClick={() => handleBulkToggle("off")}
+              disabled={isBulkLoading}
+              className="flex-1 py-2 px-4 rounded-lg border border-red-200 bg-red-50 text-red-700 text-sm font-medium hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isBulkLoading ? "Processing..." : "⏸ Turn off all meals from this day onwards"}
+            </button>
+            <button
+              onClick={() => handleBulkToggle("on")}
+              disabled={isBulkLoading}
+              className="flex-1 py-2 px-4 rounded-lg border border-green-200 bg-green-50 text-green-700 text-sm font-medium hover:bg-green-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isBulkLoading ? "Processing..." : "▶ Turn on all meals from this day onwards"}
+            </button>
+          </div>
+        )}
+
         <div className="bg-gray-50 border-t border-[#E4E2DA] p-4 shrink-0 rounded-b-xl flex justify-between items-center">
           <div className="font-medium text-[#1A3A2A]">Total selected:</div>
           <div className="text-lg font-bold text-[#1A3A2A]">৳{dailySelectedTotal}</div>
@@ -462,7 +507,7 @@ export default function MealSelectionClient() {
               activeTab === "week" ? "bg-[#1A3A2A] text-white" : "text-gray-600 hover:bg-gray-50"
             }`}
           >
-            Rolling 7 Days
+            Weekly Menu
           </button>
           <button
             onClick={() => setActiveTab("calendar")}
@@ -470,7 +515,7 @@ export default function MealSelectionClient() {
               activeTab === "calendar" ? "bg-[#1A3A2A] text-white" : "text-gray-600 hover:bg-gray-50"
             }`}
           >
-            Calendar
+            Meal Plan
           </button>
         </div>
       </div>
