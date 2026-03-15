@@ -79,7 +79,7 @@ export default function MealAttendancePage() {
       <div className="mx-auto max-w-5xl space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
-            <h1 className="font-heading text-3xl font-bold text-[#1A3A2A]">Daily Meal Attendance</h1>
+            <h1 className="font-heading text-3xl font-bold text-[#1A3A2A]">Daily Meal Count</h1>
             <p className="text-slate-500">View students who have selected meals for a specific date.</p>
           </div>
           
