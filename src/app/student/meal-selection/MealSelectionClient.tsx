@@ -105,10 +105,9 @@ export default function MealSelectionClient() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          entityId: menu.id,
+          weekly_menu_id: menu.id,
           date: dateStr,
-          isSelected: !isCurrentlySelected,
-          entityType: 'weekly_menu'
+          is_selected: !isCurrentlySelected,
         })
       });
       
