@@ -545,14 +545,6 @@ export default function MealSelectionClient() {
         
         <div className="flex bg-white rounded-lg p-1 border border-[#E4E2DA]">
           <button
-            onClick={() => setActiveTab("today")}
-            className={`px-4 flex-1 sm:flex-none py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 text-sm font-medium rounded-md transition-colors ${
-              activeTab === "today" ? "bg-[#1A3A2A] text-white" : "text-gray-600 hover:bg-gray-50"
-            }`}
-          >
-            Today
-          </button>
-          <button
             onClick={() => setActiveTab("week")}
             className={`px-4 flex-1 sm:flex-none py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 text-sm font-medium rounded-md transition-colors ${
               activeTab === "week" ? "bg-[#1A3A2A] text-white" : "text-gray-600 hover:bg-gray-50"
@@ -567,6 +559,14 @@ export default function MealSelectionClient() {
             }`}
           >
             Meal Plan
+          </button>
+          <button
+            onClick={() => setActiveTab("today")}
+            className={`px-4 flex-1 sm:flex-none py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 text-sm font-medium rounded-md transition-colors ${
+              activeTab === "today" ? "bg-[#1A3A2A] text-white" : "text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            Today
           </button>
         </div>
       </div>

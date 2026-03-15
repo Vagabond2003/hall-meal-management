@@ -1,0 +1,273 @@
+# ONLINE HALL MEAL MANAGEMENT SYSTEM
+# Comprehensive System Documentation (Exhaustive Detail)
+
+================================================================================
+I. CORE ARCHITECTURE & GLOBAL STATE
+================================================================================
+The application is a Next.js 15 app router web application.
+- Authentication: NextAuth.js (v4) with JWT. The session object is customized to include user `id`, `role` (admin/student), `is_approved`, `token_number`, and `meal_selection_enabled`.
+- Middleware: Next.js edge middleware protects routes, ensuring:
+  - Unauthenticated users go to `/login`.
+  - Approved students go to `/student/*`.
+  - Admins go to `/admin/*`.
+  - Pending/deactivated students go to holding pages.
+- Database: Supabase PostgreSQL. Standard schema with Row Level Security.
+- Styling: Tailwind CSS, Shadcn UI components, Framer Motion for animations. Extensive use of custom fonts (`font-heading`, `font-sans`).
+- Icons: `lucide-react` library.
+
+================================================================================
+II. REPOSITORY STRUCTURE TREE
+================================================================================
+/online-hall-meal-management
+├── src
+│   ├── app
+│   │   ├── (auth)
+│   │   │   ├── complete-registration
+│   │   │   ├── forgot-password
+│   │   │   ├── login
+│   │   │   ├── reset-password
+│   │   │   └── signup
+│   │   ├── admin
+│   │   │   ├── analytics
+│   │   │   ├── announcements
+│   │   │   ├── dashboard
+│   │   │   ├── invite-codes
+│   │   │   ├── meal-attendance
+│   │   │   ├── settings
+│   │   │   ├── students
+│   │   │   │   └── [id]
+│   │   │   └── weekly-menu
+│   │   ├── api (Admin, Auth, Student, Cron boundaries)
+│   │   ├── deactivated
+│   │   ├── pending-approval
+│   │   ├── student
+│   │   │   ├── announcements
+│   │   │   ├── billing
+│   │   │   ├── dashboard
+│   │   │   ├── history
+│   │   │   └── meal-selection
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── components
+│   │   ├── layout (StudentSidebar, AdminSidebar, Topbar)
+│   │   ├── pdf (MonthlyBillSummary, etc)
+│   │   ├── shared (StatCard, LoadingSkeleton)
+│   │   ├── ui (Shadcn primitives like Button, Dialog, Tabs)
+│   │   └── providers.tsx
+│   ├── lib (auth.ts, billing.ts, supabase.ts, types.ts, utils.ts)
+│   └── middleware.ts
+
+================================================================================
+III. DETAILED SCREEN-BY-SCREEN BREAKDOWN (ADMIN)
+================================================================================
+
+1. ADMIN DASHBOARD (`/admin/dashboard`)
+---------------------------------------
+File: `src/app/admin/dashboard/AdminDashboardClient.tsx`
+- Layout & Header: 
+  - Title "Admin Dashboard" and subtitle.
+  - Action Buttons: "Export [Month] PDF" (Amber outline) and "Export [Month] Excel" (Primary outline). These trigger client-side file downloads using `@react-pdf/renderer` and `xlsx`.
+- 4 Quick Stat Cards (Grid):
+  1. "Total Students" (Users icon, blue/primary)
+  2. "Pending Approvals" (UserCheck icon. Turns Amber if >0, otherwise Primary)
+  3. "Active Meals" (Utensils icon, Primary)
+  4. "This Month Revenue" (Banknote icon, ৳ prefix)
+- Pending Approvals Widget (Width: 2/3 of grid):
+  - Header: "Pending Approvals" with an amber badge showing count.
+  - List Items: Shows student `name`, `email`, and `token_number`.
+  - Actions: Red circle X button (Reject), Green CheckCircle button (Approve). 
+  - Empty State: If 0, shows a large Green CheckCircle and "All caught up!".
+- Recent Activity Feed (Width: 1/3 of grid):
+  - Vertical timeline with a subtle background line.
+  - Shows recent events like "New Student" (Blue icon) or "Meal Added" (Amber icon), including the date (e.g. "Mar 15").
+
+2. MANAGE STUDENTS (`/admin/students`)
+---------------------------------------
+File: `src/app/admin/students/StudentsClient.tsx`
+- Header: Title "Student Management".
+- Toolbar:
+  - Left: Search Bar with debounce. Searches by name, email, or token number.
+  - Right: Horizontal pills (All, Pending, Active, Deactivated) mapped to state `filter`.
+- Main Data Table:
+  - Columns: Token Number, Student Name, Status, Meals (Selection Toggle), Actions.
+  - Rows:
+    - Token column: Displays `#Token`.
+    - Status badge: Pending (Amber), Active (Green), Deactivated (Gray).
+    - Meals Toggle Switch: Admin can turn on/off meal selection for an individual student. Grayed out if pending.
+    - Actions (Icons): 
+      - Approve (Green Check) for pending.
+      - Deactivate (Amber ShieldBan) or Reactivate (Green Power) for approved users.
+      - Delete Account (Red Trash icon - opens AlertDialog).
+      - View Profile (Eye icon - links to detail page).
+- Delete Dialog: Standard alert dialog confirming permanent deletion.
+
+3. STUDENT DETAILS (`/admin/students/[id]`)
+---------------------------------------
+File: `src/app/admin/students/[id]/StudentDetailClient.tsx`
+- Top Header: Back Arrow icon to go back to list. Title: "Student Profile".
+- Top Profile Card:
+  - Avatar: Large circle with the first letter of the name.
+  - Name, Status Badge (Pending/Active/Deavticated), Token, Email, Joined Date.
+  - Meal selection global toggle for this specific student.
+  - Right Side Button Stack:
+    - Approve/Reject (if pending).
+    - Deactivate/Reactivate (if approved).
+    - Delete Account (Red outline).
+- Information Tabs (Border-bottom navigation):
+  A. "Current Selections" (Today's Meals):
+    - Shows a grid of cards for today's selected meals. Icon, Name, Price.
+  B. "Meal History":
+    - Dropdowns to select Month and Year.
+    - Table columns: Date, Meal, Cost. 
+  C. "Billing Status":
+    - Grid of cards representing monthly bills (e.g., "March 2026", "৳1500").
+    - Each card has a "Paid" (Green) or "Unpaid" (Red) badge.
+    - Button: "Mark as Paid" or "Mark as Unpaid" to toggle the boolean.
+  D. "PDF Report":
+    - Month and Year dropdown selectors.
+    - Large primary button: "Download Statement". Generates a rich PDF using the custom `MonthlyReportPDF` React-PDF document style (Green branding, total cost table).
+
+4. WEEKLY MENU (`/admin/weekly-menu`)
+---------------------------------------
+File: `src/app/admin/weekly-menu/WeeklyMenuClient.tsx`
+- Header & Top Actions:
+  - Title "Weekly Menu".
+  - Button: "Manage Slots" (Opens modal).
+  - Button: "Paste Week" (Only visible if a week is stored in clipboard).
+  - Button: "Copy Week" (Copies current week IDs to state memory).
+- Date Navigation Strip:
+  - Previous Arrow, "Week Label" (e.g., "3rd Week of March"), "This Week" sticky badge if current, Today button, Next Arrow.
+- Empty State: Shows a warning to Create slots if none exist.
+- Main Data Grid (Spreadsheet Style):
+  - Left column: Days of the week (Sunday -> Saturday).
+  - Other columns: Dynamically mapped to Active Meal Slots (e.g. Breakfast, Lunch...).
+  - Cell Interaction (`editingCell` state):
+    - Default View: Shows list of food items, Price badge in amber at bottom left. Hovering reveals a hidden "Edit" button at top right.
+    - Edit View (Inline): Turns into a white box with a `<textarea>` for Items, `<input type="number">` for price, and Cancel/Save buttons.
+    - Empty View: "Add Menu" button with Plus icon.
+- Manage Slots Modal: 
+  - Draggable list of slots. Contains Up/Down arrows to reorder, text name, and an Active/Inactive toggle switch. Bottom input to "Add New Slot".
+
+5. MEAL ATTENDANCE (`/admin/meal-attendance`)
+---------------------------------------
+File: `src/app/admin/meal-attendance/page.tsx`
+- Header: Title "Daily Meal Attendance".
+- Toolbar: Date Picker input and "Print / PDF" button.
+- Print Mode Styles: Contains injected CSS to hide the sidebar, navigation, and controls when CTRL+P is pressed, showing only the raw tables.
+- Main Data View:
+  - Loops over active slots for the selected date.
+  - Section Header: Slot Name (e.g., Breakfast), Meal items summary, and total count badge (e.g., "150 students" in amber).
+  - Table beneath header: Token Number, Student Name.
+  - Empty State: Shows a large Users icon with "No Meal Data".
+
+6. ANNOUNCEMENTS (`/admin/announcements`)
+---------------------------------------
+File: `src/app/admin/announcements/page.tsx`
+- Header: Title and "New Announcement" primary button with a plus icon that rotates on hover.
+- Main Feed:
+  - Renders all global announcements.
+  - Card UI: Left colored border based on priority (Red=Urgent, Amber=Important, Gray=Normal).
+  - Content: Badge for priority, timestamp. Title, body text.
+  - Bottom Bar: Stats showing "X read" (Eye icon) and "Y liked" (Heart icon).
+  - Hover Action: A trash can appears on hover to delete the post.
+- New Announcement Modal:
+  - Form Fields: Title input, Message textarea.
+  - Priority selector buttons: Normal, Important, Urgent (changes color when active).
+  - Actions: Cancel, Post Announcement.
+
+7. INVITE CODES (`/admin/invite-codes`)
+---------------------------------------
+File: `src/app/admin/invite-codes/page.tsx`
+- Header: Title and "Generate 400 Codes" primary button.
+- Top Stats Grid (4 Cards): Total Codes, Available, Used, Expired.
+- Filter Bar: Pill tabs (All, Available, Used, Expired) and a Search Input.
+- Data Table:
+  - Columns: Code, Status (badge), Created, Expires, Used By.
+  - Interactive: The `Code` column shows dots (••••••••) if used, but shows the actual string if `available`.
+  - Actions: A copy icon button to copy available codes to clipboard.
+
+================================================================================
+IV. DETAILED SCREEN-BY-SCREEN BREAKDOWN (STUDENT)
+================================================================================
+
+1. STUDENT DASHBOARD (`/student/dashboard`)
+---------------------------------------
+File: `src/app/student/dashboard/DashboardClient.tsx`
+- Welcome Banner:
+  - Distinct gradient background (`#1A3A2A` to `#2D5A40`) with decorative translucent circles.
+  - Contains: "Welcome back", Student Name, Token badge (Amber outline). Right side shows current month and static Daily Cutoff Time (e.g. 10:00 PM).
+- Quick Stats Grid (4 Cards):
+  1. Meals This Month (Utensils, Primary).
+  2. Estimated Cost (Receipt, Amber, ৳ prefix).
+  3. Days Active (Calendar, Blue).
+  4. Account Status (Active/Inactive string, Green/Red Check warning).
+- Announcements Section:
+  - Only visible if active announcements exist. Shows at most top 3.
+  - Card UI: Priority bar on left. Read/Unread state (opacity changes).
+  - Bottom Right actions: Heart button (to like), and "Mark read" button.
+  - "View All Announcements" shortcut link at the bottom.
+- Today's Meals Card (Rendered via Component):
+  - Lists Breakfast, Lunch, Dinner for today. Shows Green Checkmark if opted in, Gray X if not selected.
+- Quick Links Section (Bottom):
+  - Two large cards linking to `/student/history` and `/student/billing` with hover shadow effects.
+
+2. MEAL SELECTION (`/student/meal-selection`)
+---------------------------------------
+File: `src/app/student/meal-selection/MealSelectionClient.tsx`
+- Welcome Banner: (Reused identical rich gradient banner from Dashboard showing Name and Cutoff).
+- Tab Navigation: 
+  - Two buttons: "Weekly Menu" (formerly Rolling 7 Days) and "Meal Plan" (formerly Calendar). Default is `week`.
+- Weekly Menu Tab View (`activeTab === 'week'`):
+  - Vertical list. Iterates through the next 7 days starting from Today.
+  - For each day, displays 3 `MealToggleCard` components (Breakfast, Lunch, Dinner).
+  - Toggles dynamically evaluate the cutoff time constraints. If passed cutoff, the green switch is replaced with a gray Lock icon meaning the user cannot change their selection.
+- Meal Plan Tab View (`activeTab === 'calendar'`):
+  - Left Side: Full monthly calendar UI.
+    - Dates are grayed out if past cutoff.
+    - Dates have green dots underneath the number if meals are selected.
+  - Right Side: Details Panel for the clicked date.
+    - Shows the specific date header.
+    - Renders the 3 `MealToggleCard` components for that specific day.
+  - Bulk Action Buttons (Rendered below Details Panel for future dates):
+    - Red outline button: "⏸ Turn off all meals from this day onwards".
+    - Green outline button: "▶ Turn on all meals from this day onwards".
+    - Clicking these triggers `/api/student/bulk-selection` and refreshes the calendar dots immediately.
+
+3. MEAL HISTORY (`/student/history`)
+---------------------------------------
+File: `src/app/student/history/page.tsx`
+- Header: Title "Meal History".
+- Filters: Month native `<select>` dropdown (January -> December), Year native `<select>` dropdown.
+- Main Data Table:
+  - Columns: Date (formatted `MMM d`), Meal (e.g., Lunch), Items (text), Cost (right aligned `৳XX`).
+  - Rows alternate background colors for scannability.
+- Monthly Total Summary:
+  - A large dark green card at the very bottom summarizing the entire filtered list.
+  - Text: "Total Cost — [Month] [Year]". Large Text: "৳XXXX", "[X] meals consumed".
+
+4. BILLING SUMMARY (`/student/billing`)
+---------------------------------------
+File: `src/app/student/billing/page.tsx`
+- Header: Title "Billing Summary".
+- Top Summary Cards (3 Cards):
+  1. Outstanding Balance (Red).
+  2. Total Paid (Green).
+  3. Avg Monthly (Primary/Green).
+- Billing Table:
+  - Historical view of all final monthly invoices.
+  - Columns: Month, Year, Total Cost, Status.
+  - Rows: Status shows a Green badge with "Paid" or a Warning badge with "Unpaid".
+- Empty State: Graphic of a faded Receipt, "No billing records found."
+
+5. ANNOUNCEMENTS (`/student/announcements`)
+---------------------------------------
+File: `src/app/student/announcements/page.tsx`
+- Header: Title "Announcements".
+- Filter Row: Round pill buttons (All, Unread [with red notification counter badge], Important, Urgent).
+- Feed:
+  - Similar UI to Admin feed but optimized for viewing.
+  - Bottom action bar: "Mark as read" button (disappears when read, turns green and unclickable). "Like" button with dynamic heart color and count.
+
+================================================================================
+END OF DOCUMENTATION
+================================================================================
