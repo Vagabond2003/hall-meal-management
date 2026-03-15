@@ -21,13 +21,43 @@ type MenuEntry = {
   price: number;
 };
 
+// Helper to compute ordinal week label
+function getWeekLabel(weekStart: Date): string {
+  const weekEnd = addDays(weekStart, 6);
+  const majorityDate = addDays(weekStart, 3); // Thursday marks the majority month of a 7-day week
+  const majorityMonth = majorityDate.getMonth();
+  const majorityYear = majorityDate.getFullYear();
+  
+  const firstOfMonth = new Date(majorityYear, majorityMonth, 1);
+  const firstWeekStart = startOfWeek(firstOfMonth, { weekStartsOn: 0 });
+  
+  // Calculate difference in weeks
+  const diffTime = weekStart.getTime() - firstWeekStart.getTime();
+  const diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
+  const weekNumber = diffWeeks + 1;
+  
+  let suffix = "th";
+  if (weekNumber % 10 === 1 && weekNumber % 100 !== 11) suffix = "st";
+  else if (weekNumber % 10 === 2 && weekNumber % 100 !== 12) suffix = "nd";
+  else if (weekNumber % 10 === 3 && weekNumber % 100 !== 13) suffix = "rd";
+  
+  const monthName = format(majorityDate, "MMMM");
+  const startStr = format(weekStart, "MMM d");
+  const endStr = format(weekEnd, "MMM d");
+  
+  return `${weekNumber}${suffix} Week of ${monthName} (${startStr} \u2013 ${endStr})`;
+}
+
 export default function WeeklyMenuClient() {
   const [currentDate, setCurrentDate] = useState(() => startOfWeek(new Date(), { weekStartsOn: 0 }));
   const [slots, setSlots] = useState<MealSlot[]>([]);
   const [menus, setMenus] = useState<MenuEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isCopying, setIsCopying] = useState(false);
   const [showManageSlots, setShowManageSlots] = useState(false);
+  
+  const [clipboardWeekStart, setClipboardWeekStart] = useState<string | null>(null);
+  const [isCopying, setIsCopying] = useState(false);
+  const [isPasting, setIsPasting] = useState(false);
 
   const weekStartStr = format(currentDate, "yyyy-MM-dd");
 
@@ -130,27 +160,44 @@ export default function WeeklyMenuClient() {
     }
   };
 
-  const handleCopyThisWeek = async () => {
-    if (!confirm("Copy all meals from this week to next week? Existing menus next week will not be overwritten.")) return;
-    
+  const handleCopyWeek = () => {
+    setClipboardWeekStart(weekStartStr);
     setIsCopying(true);
+    toast.success("Week copied!");
+    setTimeout(() => {
+      setIsCopying(false);
+    }, 2000);
+  };
+
+  const handlePasteWeek = async () => {
+    if (!clipboardWeekStart) return;
+    if (clipboardWeekStart === weekStartStr) {
+      toast.error("Cannot paste a week into itself");
+      return;
+    }
+    
+    const sourceLabel = getWeekLabel(parseISO(clipboardWeekStart));
+    const targetLabel = getWeekLabel(currentDate);
+    
+    if (!confirm(`Paste menu from ${sourceLabel} into ${targetLabel}? Existing menus in this week will be overwritten.`)) return;
+    
+    setIsPasting(true);
     try {
-      const nextWeekStartStr = format(addWeeks(currentDate, 1), "yyyy-MM-dd");
       const res = await fetch('/api/admin/weekly-menu/copy', {
         method: 'POST',
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          fromWeekStart: weekStartStr,
-          toWeekStart: nextWeekStartStr
+          sourceWeekStart: clipboardWeekStart,
+          targetWeekStart: weekStartStr
         }),
       });
       if (!res.ok) throw new Error("Failed to copy");
-      const data = await res.json();
-      toast.success(`Copied ${data.count || 0} meals to next week`);
+      toast.success("Week pasted successfully!");
+      fetchData();
     } catch (err) {
-      toast.error("Failed to copy week");
+      toast.error("Failed to paste week");
     } finally {
-      setIsCopying(false);
+      setIsPasting(false);
     }
   };
 
@@ -170,13 +217,24 @@ export default function WeeklyMenuClient() {
             <Settings className="w-4 h-4" /> Manage Slots
           </button>
           
+          {clipboardWeekStart && (
+            <button
+              onClick={handlePasteWeek}
+              disabled={isPasting}
+              className="flex items-center gap-2 px-3 py-2 bg-[#1A3A2A] text-[#C4873A] rounded-lg text-sm hover:bg-[#2A4A3A] transition-colors disabled:opacity-50"
+            >
+              {isPasting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
+              Paste Week
+            </button>
+          )}
+
           <button
-            onClick={handleCopyThisWeek}
+            onClick={handleCopyWeek}
             disabled={isCopying}
             className="flex items-center gap-2 px-3 py-2 bg-white border border-[#E4E2DA] rounded-lg text-sm text-[#1A3A2A] hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
-            {isCopying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
-            Copy This Week
+            <Copy className="w-4 h-4" />
+            {isCopying ? "Copied \u2713" : "Copy Week"}
           </button>
         </div>
       </div>
@@ -192,7 +250,7 @@ export default function WeeklyMenuClient() {
 
         <div className="flex flex-col items-center">
           <span className="font-semibold text-[#1A3A2A]">
-            Week of {format(currentDate, "MMM d")} - {format(addDays(currentDate, 6), "MMM d, yyyy")}
+            {getWeekLabel(currentDate)}
           </span>
           {weekStartStr === format(startOfWeek(new Date(), { weekStartsOn: 0 }), "yyyy-MM-dd") && (
             <span className="text-xs bg-[#1A3A2A]/10 text-[#1A3A2A] px-2 py-0.5 rounded-full mt-1 font-medium">
