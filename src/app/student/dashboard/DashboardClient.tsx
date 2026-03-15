@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { StatCard } from "@/components/shared/StatCard";
-import { MealToggleCard } from "@/components/shared/MealToggleCard";
+import TodaysMealsCard from "@/components/TodaysMealsCard";
 import {
   UtensilsCrossed,
   Receipt,
@@ -11,10 +11,6 @@ import {
   AlertCircle,
   Calendar,
   Clock,
-  Lock,
-  Sunrise,
-  Sun,
-  Moon,
   ArrowRight,
   Megaphone,
   Heart,
@@ -23,15 +19,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-interface Meal {
-  id: string;
-  name: string;
-  description: string | null;
-  price: number;
-  meal_type: string;
-  date: string | null;
-  hasMenu?: boolean;
-}
+
 
 interface Announcement {
   id: string;
@@ -57,13 +45,7 @@ interface DashboardClientProps {
   currentMonthName: string;
 }
 
-const getMealIcon = (name: string) => {
-  const lower = name.toLowerCase();
-  if (lower.includes("breakfast") || lower.includes("morning")) return <Sunrise className="w-5 h-5" />;
-  if (lower.includes("lunch") || lower.includes("afternoon")) return <Sun className="w-5 h-5" />;
-  if (lower.includes("dinner") || lower.includes("evening") || lower.includes("night")) return <Moon className="w-5 h-5" />;
-  return <UtensilsCrossed className="w-5 h-5" />;
-};
+
 
 const containerVariants = {
   hidden: {},
@@ -86,65 +68,15 @@ export function DashboardClient({
   deadline,
   currentMonthName,
 }: DashboardClientProps) {
-  const [regularMeals, setRegularMeals] = useState<Meal[]>([]);
-  const [selectedMealIds, setSelectedMealIds] = useState<string[]>([]);
-  const [localToday, setLocalToday] = useState<string>("");
-  const [isPastDeadline, setIsPastDeadline] = useState(false);
   const [loading, setLoading] = useState(true);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
   useEffect(() => {
     const fetchLocalData = async () => {
-      const todayObj = new Date();
-      const dateStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, "0")}-${String(todayObj.getDate()).padStart(2, "0")}`;
-      setLocalToday(dateStr);
-
-      // Parse deadline for local check
-      const dlMatch = deadline.match(/(\d+):(\d+)\s*(AM|PM)/i);
-      if (dlMatch) {
-        let dh = parseInt(dlMatch[1]);
-        const dm = parseInt(dlMatch[2]);
-        const period = dlMatch[3].toUpperCase();
-        if (period === "PM" && dh < 12) dh += 12;
-        if (period === "AM" && dh === 12) dh = 0;
-        const dlTime = new Date();
-        dlTime.setHours(dh, dm, 0, 0);
-        setIsPastDeadline(todayObj > dlTime);
-      }
-
       try {
-        const [menuResult, selResult, annResult] = await Promise.allSettled([
-          fetch(`/api/student/daily-menu?date=${dateStr}`, { cache: 'no-store' }),
-          fetch(`/api/student/selections?date=${dateStr}`, { cache: 'no-store' }),
-          fetch("/api/announcements")
-        ]);
-
-        if (menuResult.status === 'fulfilled' && menuResult.value.ok) {
-          const { menus } = await menuResult.value.json();
-          if (menus && menus.length > 0) {
-            const menuMeals: Meal[] = menus.map((m: any) => ({
-              id: m.id,
-              name: m.meal_slot,
-              description: m.items,
-              price: Number(m.price),
-              meal_type: "regular",
-              date: null,
-              hasMenu: true,
-            }));
-            setRegularMeals(menuMeals);
-          } else {
-            setRegularMeals([]);
-          }
-        }
-
-        if (selResult.status === 'fulfilled' && selResult.value.ok) {
-          const selData = await selResult.value.json();
-          const selected = (selData.selections ?? []).map((s: any) => s.weekly_menu_id ?? s.meal_id).filter(Boolean);
-          setSelectedMealIds(selected);
-        }
-
-        if (annResult.status === 'fulfilled' && annResult.value.ok) {
-          const annData = await annResult.value.json();
+        const annResult = await fetch("/api/announcements");
+        if (annResult.ok) {
+          const annData = await annResult.json();
           setAnnouncements((annData.announcements || []).slice(0, 3));
         }
       } catch {
@@ -347,92 +279,7 @@ export function DashboardClient({
         </motion.div>
       )}
 
-      {/* Today's Selections */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-heading font-semibold text-text-primary">Today&apos;s Selections</h2>
-          <span className="text-xs text-text-secondary flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5" />
-            Cutoff: {deadline}
-          </span>
-        </div>
-
-        {/* Restriction banners */}
-        {!mealSelectionEnabled && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-3 p-4 mb-4 bg-danger/8 border border-danger/20 rounded-xl text-danger"
-          >
-            <Lock className="w-5 h-5 flex-shrink-0" />
-            <p className="text-sm font-medium">
-              Your meal selection has been disabled due to an outstanding bill. Please contact the admin.
-            </p>
-          </motion.div>
-        )}
-
-        {isPastDeadline && mealSelectionEnabled && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-3 p-4 mb-4 bg-warning/8 border border-warning/20 rounded-xl text-warning"
-          >
-            <Clock className="w-5 h-5 flex-shrink-0" />
-            <p className="text-sm font-medium">
-              Today&apos;s selection deadline has passed ({deadline}). Your current selections have been locked.
-            </p>
-          </motion.div>
-        )}
-
-        {/* Regular meal toggles */}
-        {loading ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-20 bg-surface-secondary rounded-2xl animate-pulse" />
-            ))}
-          </div>
-        ) : regularMeals.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex items-center gap-3 p-4 mb-4 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-600 dark:text-amber-500"
-          >
-            <Calendar className="w-5 h-5 flex-shrink-0" />
-            <p className="text-sm font-medium">
-              No menu has been set for today. Check back later.
-            </p>
-          </motion.div>
-        ) : (
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="show"
-            className="space-y-3"
-          >
-            {regularMeals.map((meal) => (
-              <motion.div key={`${meal.id}-${selectedMealIds.includes(meal.id)}`} variants={itemVariants}>
-                <MealToggleCard
-                  mealId={meal.id}
-                  name={meal.name}
-                  icon={getMealIcon(meal.name)}
-                  description={meal.description ?? ""}
-                  price={Number(meal.price)}
-                  isSelected={selectedMealIds.includes(meal.id)}
-                  date={localToday}
-                  disabled={!mealSelectionEnabled || isPastDeadline}
-                  onToggle={(mealId, selected) => {
-                    setSelectedMealIds(prev => 
-                      selected ? [...prev, mealId] : prev.filter(id => id !== mealId)
-                    );
-                  }}
-                />
-              </motion.div>
-            ))}
-          </motion.div>
-        )}
-      </div>
-
-
+      <TodaysMealsCard />
 
       {/* Quick Links */}
       <div>
