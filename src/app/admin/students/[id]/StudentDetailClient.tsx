@@ -14,8 +14,12 @@ import {
   CreditCard,
   Ban,
   Utensils,
-  Trash2
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  Edit
 } from "lucide-react";
+import { addDays, startOfDay } from "date-fns";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -63,7 +67,7 @@ interface StudentDetailClientProps {
   initialStudent: Student;
 }
 
-type TabType = 'selections' | 'history' | 'billing' | 'report';
+type TabType = 'selections' | 'history' | 'billing' | 'report' | 'edit_selections';
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -185,6 +189,93 @@ export default function StudentDetailClient({ initialStudent }: StudentDetailCli
   // Filters for History Tab
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
+  // Edit Selections State
+  const [editWeekOffset, setEditWeekOffset] = useState(0);
+  const [editMenus, setEditMenus] = useState<{
+    id: string; date: string; meal_slot: string; 
+    items: string; price: number
+  }[]>([]);
+  const [editSelectedIds, setEditSelectedIds] = useState<Set<string>>(new Set());
+  const [editSlots, setEditSlots] = useState<{
+    id: string; name: string; display_order: number
+  }[]>([]);
+  const [editLoading, setEditLoading] = useState(false);
+  const [togglingCell, setTogglingCell] = useState<string | null>(null);
+
+  const fmt = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+  const fetchEditSelections = async (offset: number) => {
+    setEditLoading(true);
+    try {
+      const base = addDays(startOfDay(new Date()), offset * 7);
+      const startDate = fmt(base);
+      const endDate = fmt(addDays(base, 6));
+      const res = await fetch(
+        `/api/admin/students/${student.id}/meal-selections?startDate=${startDate}&endDate=${endDate}`
+      );
+      if (!res.ok) throw new Error("Failed to fetch");
+      const data = await res.json();
+      setEditMenus(data.menus ?? []);
+      setEditSelectedIds(new Set(data.selectedIds ?? []));
+      setEditSlots(data.slots ?? []);
+    } catch {
+      toast.error("Failed to load meal selections");
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'edit_selections') {
+      fetchEditSelections(editWeekOffset);
+    }
+  }, [activeTab, editWeekOffset]);
+
+  const handleEditToggle = async (menu: { id: string; date: string; price: number }) => {
+    if (togglingCell === menu.id) return;
+    const isCurrentlySelected = editSelectedIds.has(menu.id);
+    setTogglingCell(menu.id);
+    
+    // Optimistic update
+    setEditSelectedIds(prev => {
+      const next = new Set(prev);
+      isCurrentlySelected ? next.delete(menu.id) : next.add(menu.id);
+      return next;
+    });
+
+    try {
+      const res = await fetch(
+        `/api/admin/students/${student.id}/meal-selections`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            weekly_menu_id: menu.id,
+            date: menu.date,
+            is_selected: !isCurrentlySelected,
+          }),
+        }
+      );
+      if (!res.ok) throw new Error("Failed to update");
+      toast.success(
+        !isCurrentlySelected
+          ? "Meal selected for student"
+          : "Meal deselected for student"
+      );
+    } catch {
+      // Revert
+      setEditSelectedIds(prev => {
+        const next = new Set(prev);
+        isCurrentlySelected ? next.add(menu.id) : next.delete(menu.id);
+        return next;
+      });
+      toast.error("Failed to update selection");
+    } finally {
+      setTogglingCell(null);
+    }
+  };
 
   const fetchDetails = useCallback(async () => {
     try {
@@ -374,6 +465,9 @@ export default function StudentDetailClient({ initialStudent }: StudentDetailCli
           <button onClick={() => setActiveTab('report')} className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'report' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}>
             <FileText className="h-4 w-4" /> PDF Report
           </button>
+          <button onClick={() => setActiveTab('edit_selections')} className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'edit_selections' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}>
+            <Edit className="h-4 w-4" /> Edit Selections
+          </button>
         </div>
 
         <div className="p-6">
@@ -562,6 +656,145 @@ export default function StudentDetailClient({ initialStudent }: StudentDetailCli
                 <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-sm flex gap-3 dark:bg-amber-900/20 dark:border-amber-900/50 dark:text-amber-400">
                   <Ban className="h-5 w-5 shrink-0" />
                   <p>Cannot generate report for {MONTH_NAMES[selectedMonth - 1]} because there are no meal records.</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'edit_selections' && (
+            <div className="space-y-4">
+              {/* Week navigation */}
+              <div className="flex items-center justify-between bg-slate-50 dark:bg-[#1F2B20] rounded-xl px-4 py-3 border border-slate-100 dark:border-[#2A3A2B]">
+                <button
+                  onClick={() => setEditWeekOffset(prev => prev - 1)}
+                  className="flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary transition-colors"
+                >
+                  <ChevronLeft className="w-4 h-4" /> Previous week
+                </button>
+                <div className="flex flex-col items-center">
+                  <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                    {format(addDays(startOfDay(new Date()), editWeekOffset * 7), "MMM d")} –{" "}
+                    {format(addDays(startOfDay(new Date()), editWeekOffset * 7 + 6), "MMM d, yyyy")}
+                  </span>
+                  {editWeekOffset !== 0 && (
+                    <button
+                      onClick={() => setEditWeekOffset(0)}
+                      className="text-xs text-primary hover:underline mt-0.5"
+                    >
+                      Back to current week
+                    </button>
+                  )}
+                </div>
+                <button
+                  onClick={() => setEditWeekOffset(prev => prev + 1)}
+                  className="flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary transition-colors"
+                >
+                  Next week <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Warning banner */}
+              <div className="flex items-center gap-2 px-4 py-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/50 rounded-xl text-amber-700 dark:text-amber-400 text-sm">
+                <Edit className="w-4 h-4 shrink-0" />
+                <span>Admin override — deadline and meal restrictions are bypassed for this student.</span>
+              </div>
+
+              {/* Meal table */}
+              {editLoading ? (
+                <div className="space-y-2">
+                  {[1, 2, 3, 4, 5, 6, 7].map(i => (
+                    <div key={i} className="h-16 bg-slate-100 dark:bg-[#1F2B20] rounded-xl animate-pulse" />
+                  ))}
+                </div>
+              ) : (
+                <div className="border border-slate-100 dark:border-[#2A3A2B] rounded-xl overflow-hidden overflow-x-auto custom-scrollbar">
+                  <table className="w-full text-left border-collapse min-w-[500px]">
+                    <thead>
+                      <tr className="bg-[#1A3A2A]">
+                        <th className="py-3 px-4 text-[#C4873A] text-xs font-medium uppercase tracking-wider border-r border-[#153022] w-[130px]">
+                          Day
+                        </th>
+                        {editSlots.map(slot => (
+                          <th key={slot.id} className="py-3 px-4 text-[#C4873A] text-xs font-medium uppercase tracking-wider border-r border-[#153022] last:border-r-0 min-w-[160px]">
+                            {slot.name}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-[#2A3A2B]">
+                      {Array.from({ length: 7 }, (_, i) => {
+                        const dayDate = addDays(
+                          startOfDay(new Date()),
+                          editWeekOffset * 7 + i
+                        );
+                        const dateStr = fmt(dayDate);
+                        const isToday = fmt(startOfDay(new Date())) === dateStr;
+
+                        return (
+                          <tr key={i} className="hover:bg-slate-50 dark:hover:bg-[#1F2B20]">
+                            <td className="py-3 px-4 border-r border-slate-100 dark:border-[#2A3A2B] align-top">
+                              <div className="font-medium text-slate-800 dark:text-slate-200 flex items-center gap-2 text-sm">
+                                {format(dayDate, "EEEE")}
+                                {isToday && (
+                                  <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded uppercase font-bold">
+                                    Today
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-xs text-slate-400 mt-0.5">
+                                {format(dayDate, "MMM d")}
+                              </div>
+                            </td>
+                            {editSlots.map(slot => {
+                              const menu = editMenus.find(
+                                m => m.date === dateStr && m.meal_slot === slot.name
+                              );
+                              if (!menu) {
+                                return (
+                                  <td key={slot.id} className="py-3 px-4 border-r border-slate-100 dark:border-[#2A3A2B] last:border-r-0 text-center align-middle">
+                                    <span className="text-slate-300 dark:text-slate-600 font-bold">—</span>
+                                  </td>
+                                );
+                              }
+                              const selected = editSelectedIds.has(menu.id);
+                              const isToggling = togglingCell === menu.id;
+
+                              return (
+                                <td
+                                  key={slot.id}
+                                  className={`py-3 px-4 border-r border-slate-100 dark:border-[#2A3A2B] last:border-r-0 align-top transition-colors ${
+                                    selected ? 'bg-green-50 dark:bg-green-900/10' : ''
+                                  }`}
+                                >
+                                  <div className="text-sm text-slate-700 dark:text-slate-300 mb-2">
+                                    {menu.items}
+                                  </div>
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-xs font-medium text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded">
+                                      ৳{menu.price}
+                                    </span>
+                                    <button
+                                      onClick={() => handleEditToggle(menu)}
+                                      disabled={isToggling}
+                                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                                        selected ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-600'
+                                      } ${isToggling ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    >
+                                      <span
+                                        className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                                          selected ? 'translate-x-5' : 'translate-x-1'
+                                        }`}
+                                      />
+                                    </button>
+                                  </div>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
