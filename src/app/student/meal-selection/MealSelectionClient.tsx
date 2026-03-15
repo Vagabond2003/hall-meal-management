@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { format, addDays, parseISO, startOfDay, isBefore, isSameDay, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, subMonths, isSameMonth } from "date-fns";
-import { Loader2, Lock, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock } from "lucide-react";
+import { Loader2, Lock, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MessageSquare } from "lucide-react";
+import FeedbackModal from "@/components/FeedbackModal";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
 import { motion } from "framer-motion";
@@ -55,6 +56,12 @@ export default function MealSelectionClient() {
   // Track ongoing toggles to prevent race conditions
   const [togglingCells, setTogglingCells] = useState<Set<string>>(new Set());
   const [isBulkLoading, setIsBulkLoading] = useState(false);
+  const [feedbackModal, setFeedbackModal] = useState<{
+    weeklyMenuId: string;
+    date: string;
+    mealName: string;
+    mealItems: string;
+  } | null>(null);
 
   // Fetch initial data for today/week
   useEffect(() => {
@@ -456,6 +463,24 @@ export default function MealSelectionClient() {
                            </div>
                         </div>
                      )}
+                     {locked && menu && (
+                       <button
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           setFeedbackModal({
+                             weeklyMenuId: menu.id,
+                             date: dateStr,
+                             mealName: slot.name,
+                             mealItems: menu.items,
+                           });
+                         }}
+                         className="flex items-center gap-1 text-xs text-gray-400 hover:text-[#1A3A2A] transition-colors mt-1"
+                         title="Give feedback"
+                       >
+                         <MessageSquare className="w-3.5 h-3.5" />
+                         <span>Feedback</span>
+                       </button>
+                     )}
                    </div>
                  </div>
                ))}
@@ -665,6 +690,24 @@ export default function MealSelectionClient() {
                                 </div>
                               </div>
                             </div>
+                                {locked && menu && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setFeedbackModal({
+                                        weeklyMenuId: menu.id,
+                                        date: dateStr,
+                                        mealName: slot.name,
+                                        mealItems: menu.items,
+                                      });
+                                    }}
+                                    className="flex items-center gap-1 text-xs text-gray-400 hover:text-[#1A3A2A] transition-colors mt-1"
+                                    title="Give feedback"
+                                  >
+                                    <MessageSquare className="w-3.5 h-3.5" />
+                                    <span>Feedback</span>
+                                  </button>
+                                )}
                           </td>
                         );
                       })}
@@ -687,6 +730,18 @@ export default function MealSelectionClient() {
           ৳ {calculateTotalCost()}
         </div>
       </div>
+
+      {feedbackModal && (
+        <FeedbackModal
+          weeklyMenuId={feedbackModal.weeklyMenuId}
+          date={feedbackModal.date}
+          mealName={feedbackModal.mealName}
+          mealItems={feedbackModal.mealItems}
+          onClose={() => setFeedbackModal(null)}
+          currentUserId={session?.user?.id ?? ''}
+          isAdmin={false}
+        />
+      )}
     </div>
   );
 }

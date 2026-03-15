@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { format, startOfWeek, addDays, subWeeks, addWeeks, parseISO } from "date-fns";
-import { Loader2, Plus, ChevronLeft, ChevronRight, Settings, Copy, Lock, Info } from "lucide-react";
+import { format, startOfWeek, addDays, subWeeks, addWeeks, parseISO, isBefore, startOfDay } from "date-fns";
+import { Loader2, Plus, ChevronLeft, ChevronRight, Settings, Copy, Lock, Info, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
+import { useSession } from "next-auth/react";
+import FeedbackModal from "@/components/FeedbackModal";
 
 type MealSlot = {
   id: string;
@@ -49,7 +51,14 @@ function getWeekLabel(weekStart: Date): string {
 }
 
 export default function WeeklyMenuClient() {
+  const { data: session } = useSession();
   const [currentDate, setCurrentDate] = useState(() => startOfWeek(new Date(), { weekStartsOn: 0 }));
+  const [feedbackModal, setFeedbackModal] = useState<{
+    weeklyMenuId: string;
+    date: string;
+    mealName: string;
+    mealItems: string;
+  } | null>(null);
   const [slots, setSlots] = useState<MealSlot[]>([]);
   const [menus, setMenus] = useState<MenuEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -386,6 +395,24 @@ export default function WeeklyMenuClient() {
                                     Edit
                                   </button>
                                 </div>
+                                {isBefore(dayDate, startOfDay(new Date())) && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setFeedbackModal({
+                                        weeklyMenuId: menu.id,
+                                        date: format(dayDate, 'yyyy-MM-dd'),
+                                        mealName: slot.name,
+                                        mealItems: menu.items,
+                                      });
+                                    }}
+                                    className="flex items-center gap-1 text-xs text-gray-400 hover:text-[#1A3A2A] transition-colors mt-1"
+                                    title="View feedback"
+                                  >
+                                    <MessageSquare className="w-3.5 h-3.5" />
+                                    <span>Feedback</span>
+                                  </button>
+                                )}
                               </div>
                             ) : (
                               <div className="h-full flex items-center justify-center pt-2">
@@ -417,6 +444,18 @@ export default function WeeklyMenuClient() {
             setShowManageSlots(false);
             fetchData(); // refresh slots on close
           }} 
+        />
+      )}
+
+      {feedbackModal && (
+        <FeedbackModal
+          weeklyMenuId={feedbackModal.weeklyMenuId}
+          date={feedbackModal.date}
+          mealName={feedbackModal.mealName}
+          mealItems={feedbackModal.mealItems}
+          onClose={() => setFeedbackModal(null)}
+          currentUserId={session?.user?.id ?? ''}
+          isAdmin={true}
         />
       )}
     </div>
