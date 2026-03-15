@@ -208,7 +208,7 @@ export default function MealSelectionClient() {
     return false;
   };
 
-  const isFutureDate = (dateStr: string) => {
+  const isFutureDate = (dateStr: string): boolean => {
     const bdToday = fmt(new Date(
       new Date().toLocaleString('en-US', { timeZone: 'Asia/Dhaka' })
     ))
