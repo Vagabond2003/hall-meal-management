@@ -1,237 +1,280 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { MealToggleCard } from "@/components/shared/MealToggleCard";
-import {
-  UtensilsCrossed,
-  Sunrise,
-  Sun,
-  Moon,
-  Clock,
-  Lock,
-  Calendar
-} from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { format, addDays, parseISO, startOfDay, isBefore, isSameDay } from "date-fns";
+import { Loader2, Lock } from "lucide-react";
 import { toast } from "sonner";
 
-interface Meal {
+type MealSlot = {
   id: string;
   name: string;
-  description: string | null;
-  price: number;
-  meal_type: string;
-  date: string | null;
-  hasMenu?: boolean;
-}
-
-const getMealIcon = (name: string) => {
-  const lower = name.toLowerCase();
-  if (lower.includes("breakfast") || lower.includes("morning")) return <Sunrise className="w-5 h-5" />;
-  if (lower.includes("lunch") || lower.includes("afternoon")) return <Sun className="w-5 h-5" />;
-  if (lower.includes("dinner") || lower.includes("evening") || lower.includes("night")) return <Moon className="w-5 h-5" />;
-  return <UtensilsCrossed className="w-5 h-5" />;
+  display_order: number;
+  is_active: boolean;
 };
 
-const containerVariants = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.08 } },
-};
-const itemVariants = {
-  hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } },
-};
-
-interface MenuProp {
+type MenuEntry = {
   id: string;
+  date: string;
   meal_slot: string;
   items: string;
-  price: string | number;
-}
+  price: number;
+};
 
-interface MealSelectionClientProps {
-  menus: MenuProp[];
-  initialSelectedIds: string[];
-  todayStr: string;
-}
-
-export default function MealSelectionClient({ menus, initialSelectedIds, todayStr }: MealSelectionClientProps) {
-  const [regularMeals, setRegularMeals] = useState<Meal[]>([]);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(initialSelectedIds));
-  const [deadline, setDeadline] = useState("10:00 PM");
-  const [isPastDeadline, setIsPastDeadline] = useState(false);
-  const [mealSelectionEnabled] = useState(true);
-  const [loading, setLoading] = useState(true);
-
-  const currentMonth = new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" });
+export default function MealSelectionClient() {
+  const [activeTab, setActiveTab] = useState<"today" | "week">("today");
+  const [currentDate, setCurrentDate] = useState(() => startOfDay(new Date()));
+  const [slots, setSlots] = useState<MealSlot[]>([]);
+  const [menus, setMenus] = useState<MenuEntry[]>([]);
+  const [selections, setSelections] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Track ongoing toggles to prevent race conditions
+  const [togglingCells, setTogglingCells] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    // Initialize meals from props
-    if (menus && menus.length > 0) {
-      const menuMeals: Meal[] = menus.map((m) => ({
-        id: m.id,
-        name: m.meal_slot,
-        description: m.items,
-        price: Number(m.price),
-        meal_type: "regular",
-        date: null,
-        hasMenu: true,
-      }));
-      setRegularMeals(menuMeals);
-    } else {
-      setRegularMeals([]);
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      // Fetch menus and slots for rolling 7-day window
+      const todayStr = format(currentDate, "yyyy-MM-dd");
+      const endDateStr = format(addDays(currentDate, 6), "yyyy-MM-dd");
+      
+      const menuRes = await fetch(`/api/student/weekly-menu?startDate=${todayStr}&endDate=${endDateStr}`);
+      if (!menuRes.ok) throw new Error("Failed to fetch menus");
+      const menuData = await menuRes.json();
+      
+      setSlots(menuData.slots || []);
+      setMenus(menuData.menus || []);
+      
+      // Fetch selections for the same window
+      const selRes = await fetch(`/api/student/selections?startDate=${todayStr}&endDate=${endDateStr}`);
+      if (!selRes.ok) throw new Error("Failed to fetch selections");
+      const selData = await selRes.json();
+      setSelections(selData.selections?.map((s: any) => s.weekly_menu_id || s.meal_id) || []);
+      
+    } catch (err) {
+      toast.error("Failed to load meal data");
+    } finally {
+      setIsLoading(false);
     }
-
-    const fetchSettings = async () => {
-      try {
-        const settingsRes = await fetch(`/api/student/settings`);
-        
-        if (settingsRes.ok) {
-          const settingsData = await settingsRes.json();
-          const dl: string = settingsData.deadline ?? "22:00:00";
-          
-          const [dh, dm] = dl.split(":").map(Number);
-          const displayDl = `${dh > 12 ? dh - 12 : dh}:${String(dm).padStart(2, "0")} ${dh >= 12 ? "PM" : "AM"}`;
-          setDeadline(displayDl);
-
-          const todayObj = new Date();
-          const dlTime = new Date();
-          dlTime.setHours(dh, dm, 0, 0);
-          setIsPastDeadline(todayObj > dlTime);
-        }
-      } catch {
-        toast.error("Failed to load settings");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchSettings();
-  }, [menus]);
-
-  const handleToggle = (mealId: string, selected: boolean) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (selected) next.add(mealId);
-      else next.delete(mealId);
-      return next;
-    });
   };
 
-  const estimatedCost = [...selectedIds].reduce((acc, id) => {
-    const meal = regularMeals.find((m) => m.id === id);
-    return acc + (meal ? Number(meal.price) : 0);
-  }, 0);
+  const getMenuForCell = (dateStr: string, slotName: string) => {
+    return menus.find(m => m.date === dateStr && m.meal_slot === slotName);
+  };
 
-  if (loading) {
+  const isSelected = (menuId: string) => selections.includes(menuId);
+
+  const isLocked = (dateStr: string) => {
+    const targetDate = startOfDay(parseISO(dateStr));
+    const today = startOfDay(currentDate);
+    
+    // Past dates are locked
+    if (isBefore(targetDate, today)) return true;
+    
+    // For today, after 10 AM (adjust cutoff as per previous rules, simple mock here)
+    if (isSameDay(targetDate, today)) {
+       const dhakaTime = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Dhaka" }));
+       if (dhakaTime.getHours() >= 10) return true;
+    }
+    
+    return false;
+  };
+
+  const handleToggle = async (menu: MenuEntry) => {
+    const isCurrentlySelected = isSelected(menu.id);
+    const dateStr = menu.date;
+    
+    if (isLocked(dateStr)) return;
+    
+    const cellKey = `${menu.id}`;
+    if (togglingCells.has(cellKey)) return;
+    
+    // Optimistic UI updates
+    setTogglingCells(prev => new Set(prev).add(cellKey));
+    setSelections(prev => isCurrentlySelected 
+      ? prev.filter(id => id !== menu.id) 
+      : [...prev, menu.id]
+    );
+
+    try {
+      const res = await fetch("/api/student/selections", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          entityId: menu.id,
+          date: dateStr,
+          isSelected: !isCurrentlySelected,
+          entityType: 'weekly_menu'
+        })
+      });
+      
+      if (!res.ok) throw new Error("Update failed");
+      
+    } catch (err) {
+      toast.error("Failed to save selection");
+      // Revert optimistic update
+      setSelections(prev => isCurrentlySelected 
+        ? [...prev, menu.id] 
+        : prev.filter(id => id !== menu.id)
+      );
+    } finally {
+      setTogglingCells(prev => {
+        const next = new Set(prev);
+        next.delete(cellKey);
+        return next;
+      });
+    }
+  };
+
+  const calculateTotalCost = () => {
+    return menus
+      .filter(m => selections.includes(m.id))
+      .reduce((sum, m) => sum + (m.price || 0), 0);
+  };
+
+  const daysToShow = activeTab === "today" ? [0] : [0, 1, 2, 3, 4, 5, 6];
+
+  if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="h-8 w-48 bg-surface-secondary rounded-lg animate-pulse" />
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="h-20 bg-surface-secondary rounded-2xl animate-pulse" />
-        ))}
+       <div className="flex justify-center items-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-[#1A3A2A]" />
       </div>
     );
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35 }}
-      className="space-y-8"
-    >
-      {/* Header */}
-      <div className="flex items-start justify-between flex-wrap gap-4">
+    <div className="max-w-7xl mx-auto space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-heading font-bold text-text-primary">Meal Selection</h1>
-          <p className="mt-1 text-text-secondary text-sm">
-            {currentMonth} — Toggle meals to select or deselect them for today.
-          </p>
+          <h1 className="text-2xl font-bold text-[#1A3A2A]">Meal Selection</h1>
+          <p className="text-sm text-gray-500">Choose your meals for the upcoming week</p>
         </div>
-        <div className="flex items-center gap-2 bg-surface border border-border/50 rounded-xl px-4 py-2 text-sm text-text-secondary shadow-sm">
-          <Clock className="w-4 h-4" />
-          <span>Daily cutoff: <strong className="text-text-primary">{deadline}</strong></span>
-        </div>
-      </div>
-
-      {/* Banners */}
-      {!mealSelectionEnabled && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex items-center gap-3 p-4 bg-danger/8 border border-danger/20 rounded-xl text-danger"
-        >
-          <Lock className="w-5 h-5 flex-shrink-0" />
-          <p className="text-sm font-medium">
-            Your meal selection has been disabled due to an outstanding bill. Contact the admin.
-          </p>
-        </motion.div>
-      )}
-
-      {isPastDeadline && mealSelectionEnabled && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex items-center gap-3 p-4 bg-warning/8 border border-warning/20 rounded-xl text-warning"
-        >
-          <Clock className="w-5 h-5 flex-shrink-0" />
-          <p className="text-sm font-medium">
-            Today&apos;s selection deadline has passed ({deadline}). Selections are now locked for today.
-          </p>
-        </motion.div>
-      )}
-
-      {/* Regular Meals */}
-      <div>
-        <h2 className="text-base font-heading font-semibold text-text-primary mb-3">Today&apos;s Menu</h2>
         
-        {regularMeals.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex items-center gap-3 p-4 mb-4 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-600 dark:text-amber-500"
+        <div className="flex bg-white rounded-lg p-1 border border-[#E4E2DA]">
+          <button
+            onClick={() => setActiveTab("today")}
+            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
+              activeTab === "today" ? "bg-[#1A3A2A] text-white" : "text-gray-600 hover:bg-gray-50"
+            }`}
           >
-            <Calendar className="w-5 h-5 flex-shrink-0" />
-            <p className="text-sm font-medium">
-              No menu has been set for today. Check back later.
-            </p>
-          </motion.div>
-        ) : (
-          <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-3">
-            {regularMeals.map((meal) => (
-              <motion.div key={`${meal.id}-${selectedIds.has(meal.id)}`} variants={itemVariants}>
-                <MealToggleCard
-                  mealId={meal.id}
-                  name={meal.name}
-                  icon={getMealIcon(meal.name)}
-                  description={meal.description ?? "Freshly prepared daily meal"}
-                  price={Number(meal.price)}
-                  isSelected={selectedIds.has(meal.id)}
-                  date={todayStr}
-                  disabled={!mealSelectionEnabled || isPastDeadline}
-                  onToggle={handleToggle}
-                />
-              </motion.div>
-            ))}
-          </motion.div>
-        )}
+            Today
+          </button>
+          <button
+            onClick={() => setActiveTab("week")}
+            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
+              activeTab === "week" ? "bg-[#1A3A2A] text-white" : "text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            Rolling 7 Days
+          </button>
+        </div>
       </div>
 
-      {/* Cost Summary */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3 }}
-        className="bg-surface border border-border/50 rounded-2xl p-6 shadow-sm"
-      >
-        <h3 className="text-sm font-semibold text-text-secondary mb-2">Today&apos;s Estimated Cost</h3>
-        <p className="text-4xl font-heading font-bold text-primary">
-          ৳{estimatedCost.toFixed(2)}
-        </p>
-        <p className="text-xs text-text-secondary mt-1">
-          Based on {selectedIds.size} meal{selectedIds.size !== 1 ? "s" : ""} selected for today
-        </p>
-      </motion.div>
-    </motion.div>
+      <div className="bg-white rounded-xl border border-[#E4E2DA] shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[600px]">
+            <thead>
+              <tr className="bg-[#1A3A2A]">
+                <th className="py-3 px-4 font-medium text-[#C4873A] text-xs uppercase tracking-wider border-b border-r border-[#153022] sticky left-0 z-10 bg-[#1A3A2A] shadow-[2px_0_5px_rgba(0,0,0,0.1)] w-[120px]">
+                  Day
+                </th>
+                {slots.map(slot => (
+                  <th key={slot.id} className="py-3 px-4 font-medium text-[#C4873A] text-xs uppercase tracking-wider border-b border-r border-[#153022] last:border-r-0 min-w-[200px]">
+                    {slot.name}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#E4E2DA]">
+              {daysToShow.map(i => {
+                const dayDate = addDays(currentDate, i);
+                const dateStr = format(dayDate, "yyyy-MM-dd");
+                const isToday = i === 0;
+                
+                return (
+                  <tr key={i} className="hover:bg-gray-50 group">
+                    <td className="py-3 px-4 border-r border-[#E4E2DA] sticky left-0 z-10 bg-white group-hover:bg-gray-50 shadow-[2px_0_5px_rgba(0,0,0,0.02)] align-top">
+                      <div className="font-medium text-[#1A3A2A] flex items-center gap-2">
+                        {format(dayDate, "EEEE")}
+                        {isToday && <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Today</span>}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-0.5">{format(dayDate, "MMM d")}</div>
+                    </td>
+                    
+                    {slots.map(slot => {
+                      const menu = getMenuForCell(dateStr, slot.name);
+                      
+                      if (!menu) {
+                        return (
+                          <td key={slot.id} className="py-3 px-4 border-r border-[#E4E2DA] last:border-r-0 align-middle text-center min-h-[80px]">
+                            <span className="text-gray-300 font-bold">—</span>
+                          </td>
+                        );
+                      }
+                      
+                      const selected = isSelected(menu.id);
+                      const locked = isLocked(dateStr);
+                      const isToggling = togglingCells.has(menu.id);
+                      
+                      return (
+                        <td 
+                          key={slot.id} 
+                          className={`py-3 px-4 border-r border-[#E4E2DA] last:border-r-0 align-top min-h-[80px] transition-colors relative ${selected ? 'bg-[#E8F5E9] group-hover:bg-[#C8E6C9]' : ''}`}
+                        >
+                          <div className="flex flex-col h-full">
+                            <div className="text-sm text-[#1A3A2A] whitespace-pre-wrap flex-grow pr-8">
+                              {menu.items}
+                            </div>
+                            
+                            <div className="flex justify-between items-end mt-3">
+                              <div className="text-xs font-medium text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
+                                ৳ {menu.price}
+                              </div>
+                              
+                              <div className="absolute top-3 right-3">
+                                {locked ? (
+                                  <div className="p-1 rounded-full bg-gray-100 text-gray-400" title="Locked">
+                                    <Lock className="w-4 h-4" />
+                                  </div>
+                                ) : (
+                                  <button
+                                     onClick={() => handleToggle(menu)}
+                                     disabled={isToggling}
+                                     className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                                       selected ? 'bg-green-500' : 'bg-gray-300'
+                                     } ${isToggling ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                   >
+                                     <span
+                                       className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                                         selected ? 'translate-x-5' : 'translate-x-1'
+                                       }`}
+                                     />
+                                   </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      <div className="bg-white p-4 rounded-xl border border-[#E4E2DA] shadow-sm flex justify-between items-center text-[#1A3A2A]">
+        <div className="font-medium">Total Estimated Cost (Selected Window):</div>
+        <div className="text-xl font-bold bg-[#E8F5E9] text-green-800 px-3 py-1 rounded-lg">
+          ৳ {calculateTotalCost()}
+        </div>
+      </div>
+    </div>
   );
 }

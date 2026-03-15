@@ -31,15 +31,27 @@ export async function GET(request: NextRequest) {
   
   const targetWeeks = weekStart1 === weekStart2 ? [weekStart1] : [weekStart1, weekStart2];
 
-  const { data, error } = await supabaseAdmin
-    .from("weekly_menus")
-    .select("id, week_start_date, day_of_week, meal_slot, items, price, is_active")
-    .in("week_start_date", targetWeeks)
-    .eq("is_active", true);
+  const [menusResult, slotsResult] = await Promise.all([
+    supabaseAdmin
+      .from("weekly_menus")
+      .select("id, week_start_date, day_of_week, meal_slot, items, price, is_active")
+      .in("week_start_date", targetWeeks)
+      .eq("is_active", true),
+    supabaseAdmin
+      .from("meal_slots")
+      .select("*")
+      .eq("is_active", true)
+      .order("display_order", { ascending: true })
+  ]);
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (menusResult.error) {
+    return NextResponse.json({ error: menusResult.error.message }, { status: 500 });
   }
+  if (slotsResult.error) {
+    return NextResponse.json({ error: slotsResult.error.message }, { status: 500 });
+  }
+
+  const data = menusResult.data;
 
   // Map each menu row to its absolute date
   const processedMenus = (data || []).map(menu => {
@@ -64,5 +76,8 @@ export async function GET(request: NextRequest) {
   // Sort by date then slot (optional, but good for consistent UI)
   finalMenus.sort((a, b) => a.date.localeCompare(b.date));
 
-  return NextResponse.json({ menus: finalMenus }, { headers: { "Cache-Control": "no-store, max-age=0, private" } });
+  return NextResponse.json(
+    { menus: finalMenus, slots: slotsResult.data }, 
+    { headers: { "Cache-Control": "no-store, max-age=0, private" } }
+  );
 }

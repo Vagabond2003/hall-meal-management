@@ -10,15 +10,27 @@ export async function GET(request: Request) {
   }
 
   try {
-    const { data: menus, error } = await supabaseAdmin
-      .from("weekly_menus")
-      .select("*")
-      .eq("week_start_date", weekStart)
-      .order("day_of_week", { ascending: true })
-      .order("created_at", { ascending: true });
+    const [menusResult, slotsResult] = await Promise.all([
+      supabaseAdmin
+        .from("weekly_menus")
+        .select("*")
+        .eq("week_start_date", weekStart)
+        .order("day_of_week", { ascending: true })
+        .order("created_at", { ascending: true }),
+      supabaseAdmin
+        .from("meal_slots")
+        .select("*")
+        .eq("is_active", true)
+        .order("display_order", { ascending: true })
+    ]);
 
-    if (error) throw error;
-    return NextResponse.json({ menus });
+    if (menusResult.error) throw menusResult.error;
+    if (slotsResult.error) throw slotsResult.error;
+
+    return NextResponse.json({ 
+      menus: menusResult.data,
+      slots: slotsResult.data 
+    });
   } catch (error) {
     console.error("GET /api/admin/weekly-menu error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
