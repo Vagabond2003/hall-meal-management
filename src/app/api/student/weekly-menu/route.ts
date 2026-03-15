@@ -26,10 +26,14 @@ export async function GET(request: NextRequest) {
   const startDateObj = parseISO(startDateStr);
   const endDateObj = parseISO(endDateStr);
   
-  const weekStart1 = format(startOfWeek(startDateObj, { weekStartsOn: 0 }), "yyyy-MM-dd");
-  const weekStart2 = format(startOfWeek(endDateObj, { weekStartsOn: 0 }), "yyyy-MM-dd");
+  const targetWeeks: string[] = [];
+  let currentObj = startOfWeek(startDateObj, { weekStartsOn: 0 });
+  const endWeekObj = startOfWeek(endDateObj, { weekStartsOn: 0 });
   
-  const targetWeeks = weekStart1 === weekStart2 ? [weekStart1] : [weekStart1, weekStart2];
+  while (currentObj <= endWeekObj) {
+    targetWeeks.push(format(currentObj, "yyyy-MM-dd"));
+    currentObj = addDays(currentObj, 7);
+  }
 
   const [menusResult, slotsResult] = await Promise.all([
     supabaseAdmin

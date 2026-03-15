@@ -274,7 +274,7 @@ export default function MealSelectionClient() {
            } else if (selectedForDay > 0) {
               dotColor = "bg-amber-500";
            } else {
-              dotColor = "bg-amber-500"; 
+              dotColor = "bg-gray-300"; 
            }
         }
 
