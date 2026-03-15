@@ -162,8 +162,9 @@ export default function BillingSummaryPage() {
         </div>
       ) : (
         <div className="bg-surface rounded-2xl border border-border/50 shadow-sm overflow-hidden">
-          {/* Table Header */}
-          <div className="grid grid-cols-5 gap-4 px-6 py-3 bg-surface-secondary text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-border">
+          <div className="overflow-x-auto custom-scrollbar">
+            {/* Table Header */}
+            <div className="grid grid-cols-5 gap-4 px-6 py-3 min-w-[500px] bg-surface-secondary text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-border">
             <span>Month</span>
             <span>Year</span>
             <span>Total Cost</span>
@@ -176,7 +177,7 @@ export default function BillingSummaryPage() {
               <motion.div
                 key={record.id}
                 variants={rowVariants}
-                className={`grid grid-cols-5 gap-4 px-6 py-4 border-b border-border/40 last:border-0 items-center text-sm hover:bg-primary-muted/30 transition-colors ${i % 2 === 1 ? "bg-surface-secondary/30" : ""}`}
+                className={`grid grid-cols-5 gap-4 px-6 py-4 min-w-[500px] border-b border-border/40 last:border-0 items-center text-sm hover:bg-primary-muted/30 transition-colors ${i % 2 === 1 ? "bg-surface-secondary/30" : ""}`}
               >
                 <span className="font-medium text-text-primary">{MONTH_NAMES[record.month - 1]}</span>
                 <span className="text-text-secondary">{record.year}</span>
@@ -209,6 +210,7 @@ export default function BillingSummaryPage() {
               </motion.div>
             ))}
           </motion.div>
+          </div>
         </div>
       )}
     </motion.div>
