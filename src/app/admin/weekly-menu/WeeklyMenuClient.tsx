@@ -410,7 +410,7 @@ export default function WeeklyMenuClient() {
                                     title="View feedback"
                                   >
                                     <MessageSquare className="w-3.5 h-3.5" />
-                                    <span>Feedback</span>
+                                    <span>See Feedback</span>
                                   </button>
                                 )}
                               </div>

@@ -214,12 +214,12 @@ export default function FeedbackModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center overflow-y-auto py-8 px-4"
+      className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center overflow-y-auto py-8 px-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 fade-in duration-200">
+      <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 fade-in duration-200">
         {/* Header */}
         <div className="bg-[#1A3A2A] p-5 flex justify-between items-start">
           <div className="min-w-0">
@@ -321,7 +321,7 @@ export default function FeedbackModal({
               )}
 
               {/* Comment List */}
-              <div className="space-y-4 max-h-[350px] overflow-y-auto pr-1">
+              <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1">
                 {feedback.length === 0 && (
                   <p className="text-center text-gray-400 py-8 text-sm">
                     No feedback yet. Be the first to rate this meal!

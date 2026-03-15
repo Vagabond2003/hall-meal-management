@@ -9,7 +9,9 @@ import {
   Banknote,
   CheckCircle,
   XCircle,
-  UserPlus
+  UserPlus,
+  Star,
+  MessageSquare
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -47,15 +49,27 @@ interface AdminDashboardClientProps {
   initialMetrics: MetricData;
   initialPending: PendingStudent[];
   initialActivities: Activity[];
+  initialFeedback: {
+    id: string;
+    student_name: string;
+    token_number: string;
+    meal_slot: string;
+    date: string;
+    rating: number;
+    comment: string | null;
+    created_at: string;
+  }[];
 }
 
 export default function AdminDashboardClient({
   initialMetrics,
   initialPending,
-  initialActivities
+  initialActivities,
+  initialFeedback
 }: AdminDashboardClientProps) {
   const [metrics, setMetrics] = useState<MetricData>(initialMetrics);
   const [pendingStudents, setPendingStudents] = useState<PendingStudent[]>(initialPending);
+  const [recentFeedback] = useState(initialFeedback);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const [isExportingExcel, setIsExportingExcel] = useState(false);
 
@@ -209,7 +223,7 @@ export default function AdminDashboardClient({
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         {/* Pending Approvals Widget */}
         <motion.div 
-          className="col-span-1 lg:col-span-2 rounded-2xl bg-white p-6 shadow-sm border border-slate-100 dark:bg-[#182218] dark:border-[#2A3A2B]"
+          className="col-span-1 rounded-2xl bg-white p-6 shadow-sm border border-slate-100 dark:bg-[#182218] dark:border-[#2A3A2B]"
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: 0.5, ease: "easeOut" as const }}
@@ -328,6 +342,54 @@ export default function AdminDashboardClient({
               </div>
             )}
           </div>
+        </motion.div>
+
+        {/* Recent Feedback Widget */}
+        <motion.div
+          className="col-span-1 rounded-2xl bg-white p-6 shadow-sm border border-slate-100 dark:bg-[#182218] dark:border-[#2A3A2B]"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.7, ease: "easeOut" as const }}
+        >
+          <div className="mb-6 flex items-center justify-between">
+            <h2 className="text-xl font-heading font-semibold text-slate-800 dark:text-slate-100">
+              Recent Feedback
+            </h2>
+            <MessageSquare className="w-5 h-5 text-amber-500" />
+          </div>
+
+          {recentFeedback.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center text-slate-400 dark:text-slate-500">
+              <MessageSquare className="w-8 h-8 mb-2 opacity-30" />
+              <p className="text-sm">No feedback yet.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {recentFeedback.slice(0, 5).map((f) => (
+                <div key={f.id} className="flex flex-col gap-1 pb-4 border-b border-slate-100 dark:border-[#2A3A2B] last:border-0 last:pb-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{f.student_name}</span>
+                    <span className="text-xs font-mono text-slate-400 shrink-0">#{f.token_number}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-500">{f.meal_slot}</span>
+                    <span className="text-amber-500 text-xs">
+                      {Array(f.rating).fill('★').join('')}
+                      {Array(5 - f.rating).fill('☆').join('')}
+                    </span>
+                  </div>
+                  {f.comment && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 italic">
+                      &ldquo;{f.comment}&rdquo;
+                    </p>
+                  )}
+                  <p className="text-[11px] text-slate-400">
+                    {format(new Date(f.created_at), "MMM d, h:mm a")}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </motion.div>
       </div>
     </div>

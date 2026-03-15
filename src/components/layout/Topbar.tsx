@@ -1,7 +1,7 @@
 "use client";
 
 import { signOut, useSession } from "next-auth/react";
-import { Bell, UserCircle, LogOut, Settings, Utensils, UserPlus, Loader2, Menu } from "lucide-react";
+import { Bell, UserCircle, LogOut, Settings, Utensils, UserPlus, Loader2, Menu, MessageSquare } from "lucide-react";
 import { Skeleton } from "../ui/skeleton";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -23,6 +23,7 @@ export function Topbar() {
   const [showBell, setShowBell] = useState(false);
   const [showUser, setShowUser] = useState(false);
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [feedbackNotifs, setFeedbackNotifs] = useState<any[]>([]);
   const [isLoadingActivities, setIsLoadingActivities] = useState(false);
   
   const bellRef = useRef<HTMLDivElement>(null);
@@ -49,12 +50,13 @@ export function Topbar() {
   useEffect(() => {
     if (showBell && activities.length === 0 && isAdmin) {
       setIsLoadingActivities(true);
-      fetch('/api/admin/activities')
-        .then(res => res.json())
-        .then(data => {
-          if (data.activities) setActivities(data.activities);
-        })
-        .finally(() => setIsLoadingActivities(false));
+      Promise.all([
+        fetch('/api/admin/activities').then(r => r.json()),
+        fetch('/api/admin/feedback-notifications').then(r => r.json()),
+      ]).then(([actData, fbData]) => {
+        if (actData.activities) setActivities(actData.activities);
+        if (fbData.notifications) setFeedbackNotifs(fbData.notifications);
+      }).finally(() => setIsLoadingActivities(false));
     }
   }, [showBell, activities.length, isAdmin]);
 
@@ -158,6 +160,35 @@ export function Topbar() {
                   ) : (
                     <div className="p-8 text-center text-sm text-slate-500">
                       No recent activities.
+                    </div>
+                  )}
+                  {feedbackNotifs.length > 0 && (
+                    <div>
+                      <div className="px-4 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider bg-slate-50/50 dark:bg-[#182218] border-t border-slate-100 dark:border-[#2A3A2B]">
+                        Recent Feedback
+                      </div>
+                      <div className="divide-y divide-slate-100 dark:divide-[#2A3A2B]">
+                        {feedbackNotifs.slice(0, 5).map((n: any) => (
+                          <div key={n.id} className="p-4 hover:bg-slate-50 dark:hover:bg-[#1F2B20] transition-colors flex gap-3">
+                            <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-50 dark:bg-amber-900/20">
+                              <MessageSquare className="h-4 w-4 text-amber-600" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">
+                                {n.student_name}
+                                <span className="font-mono text-xs text-slate-400 ml-1">#{n.token_number}</span>
+                              </p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                                Rated {n.meal_slot} {Array(n.rating).fill('★').join('')}
+                                {n.comment ? ` — "${n.comment.slice(0, 40)}${n.comment.length > 40 ? '...' : ''}"` : ''}
+                              </p>
+                              <p className="text-xs text-slate-400 mt-0.5">
+                                {format(new Date(n.created_at), "MMM d, h:mm a")}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>

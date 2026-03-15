@@ -90,6 +90,52 @@ export default async function AdminDashboardPage() {
     }))
   ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 8);
 
+  // Fetch recent feedback
+  const { data: feedbackRaw } = await supabaseAdmin
+    .from('meal_feedback')
+    .select('id, rating, comment, created_at, student_id, weekly_menu_id, date')
+    .order('created_at', { ascending: false })
+    .limit(5);
+
+  let initialFeedback: {
+    id: string;
+    student_name: string;
+    token_number: string;
+    meal_slot: string;
+    date: string;
+    rating: number;
+    comment: string | null;
+    created_at: string;
+  }[] = [];
+
+  if (feedbackRaw && feedbackRaw.length > 0) {
+    const fbStudentIds = [...new Set(feedbackRaw.map(f => f.student_id))];
+    const { data: fbUsers } = await supabaseAdmin
+      .from('users')
+      .select('id, name, token_number')
+      .in('id', fbStudentIds);
+
+    const fbMenuIds = [...new Set(feedbackRaw.map(f => f.weekly_menu_id))];
+    const { data: fbMenus } = await supabaseAdmin
+      .from('weekly_menus')
+      .select('id, meal_slot')
+      .in('id', fbMenuIds);
+
+    const userMap = Object.fromEntries((fbUsers ?? []).map(u => [u.id, u]));
+    const menuMap = Object.fromEntries((fbMenus ?? []).map(m => [m.id, m]));
+
+    initialFeedback = feedbackRaw.map(f => ({
+      id: f.id,
+      student_name: userMap[f.student_id]?.name ?? 'Unknown',
+      token_number: userMap[f.student_id]?.token_number ?? '',
+      meal_slot: menuMap[f.weekly_menu_id]?.meal_slot ?? 'Meal',
+      date: f.date,
+      rating: f.rating,
+      comment: f.comment,
+      created_at: f.created_at,
+    }));
+  }
+
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       {pendingApprovalsCount !== null && pendingApprovalsCount > 0 && (
@@ -112,6 +158,7 @@ export default async function AdminDashboardPage() {
         initialMetrics={metrics}
         initialPending={pendingApprovalsList || []}
         initialActivities={activities}
+        initialFeedback={initialFeedback}
       />
     </div>
   );
