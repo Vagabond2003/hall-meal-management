@@ -5,6 +5,11 @@ import { supabaseAdmin } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
+const fmt = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate()
+  ).padStart(2, "0")}`;
+
 // GET /api/student/feedback?weekly_menu_id=X&date=YYYY-MM-DD
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -107,6 +112,17 @@ export async function POST(request: NextRequest) {
 
   if (!rating || rating < 1 || rating > 5) {
     return NextResponse.json({ error: "rating must be between 1 and 5" }, { status: 400 });
+  }
+
+  // Only allow feedback on today or past dates
+  const bdToday = fmt(new Date(
+    new Date().toLocaleString("en-US", { timeZone: "Asia/Dhaka" })
+  ));
+  if (date > bdToday) {
+    return NextResponse.json(
+      { error: "You can only rate meals from today or earlier" },
+      { status: 403 }
+    );
   }
 
   // Upsert feedback

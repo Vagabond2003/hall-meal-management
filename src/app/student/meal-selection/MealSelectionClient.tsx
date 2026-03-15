@@ -208,6 +208,13 @@ export default function MealSelectionClient() {
     return false;
   };
 
+  const isFutureDate = (dateStr: string) => {
+    const bdToday = fmt(new Date(
+      new Date().toLocaleString('en-US', { timeZone: 'Asia/Dhaka' })
+    ))
+    return dateStr > bdToday
+  }
+
   const handleToggle = async (menu: MenuEntry) => {
     const isCurrentlySelected = isSelected(menu.id);
     const dateStr = menu.date;
@@ -476,7 +483,7 @@ export default function MealSelectionClient() {
                            </div>
                         </div>
                      )}
-                     {menu && (
+                     {menu && !isFutureDate(dateStr) && (
                        <button
                          onClick={(e) => {
                            e.stopPropagation();
@@ -752,7 +759,7 @@ export default function MealSelectionClient() {
                                 </div>
                               </div>
                             </div>
-                                {menu && (
+                                {menu && !isFutureDate(dateStr) && (
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
