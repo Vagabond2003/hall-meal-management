@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     // 1. Look up token in email_verification_tokens
     const { data: tokenRecord, error: tokenError } = await supabaseAdmin
       .from("email_verification_tokens")
-      .select("id, email, invite_code, used, expires_at")
+      .select("id, email, invite_code, used, expires_at, signup_mode")
       .eq("token", token)
       .single();
 
@@ -46,6 +46,7 @@ export async function POST(req: Request) {
     // 3. Get email and invite_code from token record
     const email = tokenRecord.email;
     const inviteCode = tokenRecord.invite_code;
+    const signupMode = tokenRecord.signup_mode || "student";
 
     // 4. Re-validate invite code: exists, not used, not expired
     if (!inviteCode) {
@@ -99,18 +100,21 @@ export async function POST(req: Request) {
     // 6. Hash password with bcrypt
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 7. Insert new user
+    // 7. Determine role and approval status based on signup_mode
+    const isAdmin = signupMode === "admin";
+
+    // 8. Insert new user
     const { data: newUser, error: insertError } = await supabaseAdmin
       .from("users")
       .insert({
         name,
         email: email,
         password: hashedPassword,
-        token_number: tokenNumber, // token_number based on original logic and user request
-        role: "student",
-        is_approved: false,
+        token_number: tokenNumber,
+        role: isAdmin ? "admin" : "student",
+        is_approved: isAdmin ? true : false,
         is_active: true,
-        meal_selection_enabled: false,
+        meal_selection_enabled: isAdmin ? true : false,
       })
       .select("id")
       .single();

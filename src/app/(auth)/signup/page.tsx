@@ -7,28 +7,34 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Mail, Ticket,
-  UtensilsCrossed, ArrowRight, Loader2, CheckCircle2
+  UtensilsCrossed, ArrowRight, Loader2, CheckCircle2, ShieldCheck
 } from "lucide-react";
 import { toast } from "sonner";
+
+type SignupMode = "student" | "admin";
 
 export default function SignupPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [signupMode, setSignupMode] = useState<SignupMode>("student");
 
   // Form state
   const [inviteCode, setInviteCode] = useState("");
   const [email, setEmail] = useState("");
+  const [adminSecretCode, setAdminSecretCode] = useState("");
 
   // Error state
   const [inviteCodeError, setInviteCodeError] = useState("");
   const [emailError, setEmailError] = useState("");
+  const [adminSecretError, setAdminSecretError] = useState("");
 
   const handleSendVerification = async (e: React.FormEvent) => {
     e.preventDefault();
     
     setInviteCodeError("");
     setEmailError("");
+    setAdminSecretError("");
 
     let hasError = false;
     if (!inviteCode.trim()) {
@@ -37,6 +43,10 @@ export default function SignupPage() {
     }
     if (!email.trim() || !/^\S+@\S+\.\S+$/.test(email)) {
       setEmailError("A valid email is required");
+      hasError = true;
+    }
+    if (signupMode === "admin" && !adminSecretCode.trim()) {
+      setAdminSecretError("Admin secret code is required");
       hasError = true;
     }
 
@@ -51,6 +61,8 @@ export default function SignupPage() {
         body: JSON.stringify({
           inviteCode,
           email,
+          signupMode,
+          adminSecretCode: signupMode === "admin" ? adminSecretCode : undefined,
         }),
       });
 
@@ -86,7 +98,7 @@ export default function SignupPage() {
           </div>
 
           <h2 className="font-heading text-4xl lg:text-5xl text-white font-bold leading-tight mb-8">
-            Get Started in 3 Steps
+            {signupMode === "admin" ? "Admin Registration" : "Get Started in 3 Steps"}
           </h2>
           
           <div className="space-y-8">
@@ -94,7 +106,11 @@ export default function SignupPage() {
               <div className="flex items-center justify-center w-8 h-8 rounded-full bg-accent-gold text-primary font-bold shrink-0">1</div>
               <div>
                 <h3 className="text-white font-semibold text-xl mb-1">Verify Email</h3>
-                <p className="text-primary-muted font-body">Enter your invite code and email address.</p>
+                <p className="text-primary-muted font-body">
+                  {signupMode === "admin"
+                    ? "Enter invite code, email, and admin secret code."
+                    : "Enter your invite code and email address."}
+                </p>
               </div>
             </div>
             <div className="flex gap-4 items-start opacity-60">
@@ -107,8 +123,14 @@ export default function SignupPage() {
             <div className="flex gap-4 items-start opacity-60">
               <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/20 text-white font-bold shrink-0">3</div>
               <div>
-                <h3 className="text-white font-semibold text-xl mb-1">Wait for Approval</h3>
-                <p className="text-primary-muted font-body">Admin will review and activate your account.</p>
+                <h3 className="text-white font-semibold text-xl mb-1">
+                  {signupMode === "admin" ? "Start Managing" : "Wait for Approval"}
+                </h3>
+                <p className="text-primary-muted font-body">
+                  {signupMode === "admin"
+                    ? "Your admin account is auto-approved. Start right away."
+                    : "Admin will review and activate your account."}
+                </p>
               </div>
             </div>
           </div>
@@ -122,8 +144,41 @@ export default function SignupPage() {
           {!isSuccess ? (
             <>
               <div className="text-center mb-8">
-                <h1 className="font-heading text-4xl font-bold text-text-primary mb-3">Join the Hall</h1>
-                <p className="text-text-secondary">Enter your invite code and email to get started</p>
+                <h1 className="font-heading text-4xl font-bold text-text-primary mb-3">
+                  {signupMode === "admin" ? "Admin Signup" : "Join the Hall"}
+                </h1>
+                <p className="text-text-secondary">
+                  {signupMode === "admin"
+                    ? "Register as an administrator"
+                    : "Enter your invite code and email to get started"}
+                </p>
+              </div>
+
+              {/* Student / Admin Toggle */}
+              <div className="flex bg-slate-100 dark:bg-[#1F2B20] rounded-xl p-1 mb-6">
+                <button
+                  type="button"
+                  onClick={() => { setSignupMode("student"); setAdminSecretCode(""); setAdminSecretError(""); }}
+                  className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all ${
+                    signupMode === "student"
+                      ? "bg-white dark:bg-[#182218] text-primary shadow-sm"
+                      : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+                  }`}
+                >
+                  Student
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSignupMode("admin")}
+                  className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                    signupMode === "admin"
+                      ? "bg-white dark:bg-[#182218] text-primary shadow-sm"
+                      : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+                  }`}
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  Admin
+                </button>
               </div>
 
               <form onSubmit={handleSendVerification} className="space-y-6">
@@ -165,6 +220,28 @@ export default function SignupPage() {
                   {emailError && <p className="text-red-500 text-xs mt-1">{emailError}</p>}
                 </div>
 
+                {/* Admin Secret Code field — only shown for admin mode */}
+                {signupMode === "admin" && (
+                  <div className="space-y-2 animate-fade-in">
+                    <label className="text-sm font-medium text-text-primary block">Admin Secret Code</label>
+                    <div className="relative">
+                      <Input
+                        disabled={isLoading}
+                        value={adminSecretCode}
+                        onChange={(e) => {
+                          setAdminSecretCode(e.target.value);
+                          if (adminSecretError) setAdminSecretError("");
+                        }}
+                        type="password"
+                        placeholder="Enter admin secret code"
+                        className={`pl-10 h-12 ${adminSecretError ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                      />
+                      <ShieldCheck className="w-5 h-5 text-text-disabled absolute left-3 top-1/2 -translate-y-1/2" />
+                    </div>
+                    {adminSecretError && <p className="text-red-500 text-xs mt-1">{adminSecretError}</p>}
+                  </div>
+                )}
+
                 <div className="pt-2 animate-fade-in stagger-3">
                   <Button
                     type="submit"
@@ -191,8 +268,13 @@ export default function SignupPage() {
               </div>
               <h2 className="font-heading text-3xl font-bold text-text-primary">Check Your Email</h2>
               <div className="space-y-2 text-text-secondary">
-                <p>We've sent a verification link to <span className="font-semibold text-text-primary">{email}</span></p>
+                <p>We&apos;ve sent a verification link to <span className="font-semibold text-text-primary">{email}</span></p>
                 <p className="text-sm">Link expires in 1 hour</p>
+                {signupMode === "admin" && (
+                  <p className="text-sm text-amber-600 font-medium mt-2">
+                    Your admin account will be auto-approved after registration.
+                  </p>
+                )}
               </div>
               <Button
                 variant="ghost"
@@ -200,6 +282,7 @@ export default function SignupPage() {
                   setIsSuccess(false);
                   setInviteCode("");
                   setEmail("");
+                  setAdminSecretCode("");
                 }}
                 className="text-primary"
               >
