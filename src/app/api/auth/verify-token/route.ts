@@ -15,7 +15,7 @@ export async function GET(req: Request) {
 
     const { data: tokenRecord, error: tokenError } = await supabaseAdmin
       .from("email_verification_tokens")
-      .select("id, email, used, expires_at")
+      .select("id, email, used, expires_at, signup_mode")
       .eq("token", token)
       .single();
 
@@ -41,7 +41,7 @@ export async function GET(req: Request) {
     }
 
     return NextResponse.json(
-      { valid: true, email: tokenRecord.email },
+      { valid: true, email: tokenRecord.email, signupMode: tokenRecord.signup_mode || "student" },
       { status: 200 }
     );
   } catch (error) {

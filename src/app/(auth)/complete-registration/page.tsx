@@ -19,6 +19,7 @@ function CompleteRegistrationInner() {
   const [isVerifying, setIsVerifying] = useState(true);
   const [verificationError, setVerificationError] = useState("");
   const [email, setEmail] = useState("");
+  const [signupMode, setSignupMode] = useState<"student" | "admin">("student");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -46,6 +47,7 @@ function CompleteRegistrationInner() {
           setVerificationError(data.message || "Failed to verify token.");
         } else {
           setEmail(data.email);
+          if (data.signupMode) setSignupMode(data.signupMode);
         }
       } catch {
         setVerificationError("An error occurred during verification.");
@@ -80,7 +82,7 @@ function CompleteRegistrationInner() {
           token,
           name,
           password,
-          tokenNumber,
+          ...(signupMode !== "admin" ? { tokenNumber } : {}),
         }),
       });
 
@@ -117,7 +119,7 @@ function CompleteRegistrationInner() {
           </div>
 
           <h2 className="font-heading text-4xl lg:text-5xl text-white font-bold leading-tight mb-8">
-            Complete Registration
+            {signupMode === "admin" ? "Admin Registration" : "Complete Registration"}
           </h2>
           
           <div className="space-y-8">
@@ -138,8 +140,14 @@ function CompleteRegistrationInner() {
             <div className="flex gap-4 items-start opacity-60">
               <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/20 text-white font-bold shrink-0">3</div>
               <div>
-                <h3 className="text-white font-semibold text-xl mb-1">Wait for Approval</h3>
-                <p className="text-primary-muted font-body">Admin will review and activate your account.</p>
+                <h3 className="text-white font-semibold text-xl mb-1">
+                  {signupMode === "admin" ? "Start Managing" : "Wait for Approval"}
+                </h3>
+                <p className="text-primary-muted font-body">
+                  {signupMode === "admin"
+                    ? "Your admin account is auto-approved. Start right away."
+                    : "Admin will review and activate your account."}
+                </p>
               </div>
             </div>
           </div>
@@ -188,6 +196,7 @@ function CompleteRegistrationInner() {
                   </div>
                 </div>
 
+                {signupMode !== "admin" && (
                 <div className="space-y-2 animate-fade-in stagger-2">
                   <div className="flex items-center gap-2">
                     <label className="text-sm font-medium text-text-primary block">Token Number</label>
@@ -215,6 +224,7 @@ function CompleteRegistrationInner() {
                     <Hash className="w-5 h-5 text-text-disabled absolute left-3 top-1/2 -translate-y-1/2" />
                   </div>
                 </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-4 animate-fade-in stagger-3">
                   <div className="space-y-2">

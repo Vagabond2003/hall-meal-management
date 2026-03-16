@@ -7,7 +7,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { token, name, password, tokenNumber } = body;
 
-    if (!token || !name || !password || !tokenNumber) {
+    if (!token || !name || !password) {
       return NextResponse.json(
         { message: "Missing required fields" },
         { status: 400 }
@@ -103,14 +103,22 @@ export async function POST(req: Request) {
     // 7. Determine role and approval status based on signup_mode
     const isAdmin = signupMode === "admin";
 
-    // 8. Insert new user
+    // 8. Validate token_number for students
+    if (!isAdmin && !tokenNumber) {
+      return NextResponse.json(
+        { message: "Token number is required for student accounts" },
+        { status: 400 }
+      );
+    }
+
+    // 9. Insert new user
     const { data: newUser, error: insertError } = await supabaseAdmin
       .from("users")
       .insert({
         name,
         email: email,
         password: hashedPassword,
-        token_number: tokenNumber,
+        ...(isAdmin ? {} : { token_number: tokenNumber }),
         role: isAdmin ? "admin" : "student",
         is_approved: isAdmin ? true : false,
         is_active: true,
