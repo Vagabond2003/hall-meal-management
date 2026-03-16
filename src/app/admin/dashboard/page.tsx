@@ -15,33 +15,30 @@ export default async function AdminDashboardPage() {
     redirect("/login");
   }
 
-  // Initial fetch for the dashboard
+  // Initial fetch for the dashboard — ALL queries run in parallel
   const today = new Date();
   const currentMonth = today.getMonth() + 1;
   const currentYear = today.getFullYear();
 
-  // Fetch metrics
-  const { count: totalStudents } = await supabaseAdmin
-    .from("users")
-    .select("*", { count: "exact", head: true })
-    .eq("role", "student");
-
-  const { count: pendingApprovalsCount } = await supabaseAdmin
-    .from("users")
-    .select("*", { count: "exact", head: true })
-    .eq("role", "student")
-    .eq("is_approved", false);
-
-  const { count: activeMeals } = await supabaseAdmin
-    .from("meals")
-    .select("*", { count: "exact", head: true })
-    .eq("is_active", true);
-
-  const { data: billingData } = await supabaseAdmin
-    .from("monthly_billing")
-    .select("total_cost")
-    .eq("month", currentMonth)
-    .eq("year", currentYear);
+  const [
+    { count: totalStudents },
+    { count: pendingApprovalsCount },
+    { count: activeMeals },
+    { data: billingData },
+    { data: pendingApprovalsList },
+    { data: recentStudents },
+    { data: recentMeals },
+    { data: feedbackRaw },
+  ] = await Promise.all([
+    supabaseAdmin.from("users").select("*", { count: "exact", head: true }).eq("role", "student"),
+    supabaseAdmin.from("users").select("*", { count: "exact", head: true }).eq("role", "student").eq("is_approved", false),
+    supabaseAdmin.from("meals").select("*", { count: "exact", head: true }).eq("is_active", true),
+    supabaseAdmin.from("monthly_billing").select("total_cost").eq("month", currentMonth).eq("year", currentYear),
+    supabaseAdmin.from("users").select("id, name, email, token_number, created_at").eq("role", "student").eq("is_approved", false).order("created_at", { ascending: false }).limit(5),
+    supabaseAdmin.from("users").select("id, name, created_at").eq("role", "student").order("created_at", { ascending: false }).limit(5),
+    supabaseAdmin.from("meals").select("id, name, created_at").order("created_at", { ascending: false }).limit(5),
+    supabaseAdmin.from('meal_feedback').select('id, rating, comment, created_at, student_id, weekly_menu_id, date').order('created_at', { ascending: false }).limit(5),
+  ]);
 
   const thisMonthRevenue = billingData?.reduce((acc, curr) => acc + Number(curr.total_cost || 0), 0) || 0;
 
@@ -51,29 +48,6 @@ export default async function AdminDashboardPage() {
     activeMeals: activeMeals || 0,
     thisMonthRevenue
   };
-
-  // Fetch pending approvals
-  const { data: pendingApprovalsList } = await supabaseAdmin
-    .from("users")
-    .select("id, name, email, token_number, created_at")
-    .eq("role", "student")
-    .eq("is_approved", false)
-    .order("created_at", { ascending: false })
-    .limit(5);
-
-  // Fetch simulated recent activity
-  const { data: recentStudents } = await supabaseAdmin
-    .from("users")
-    .select("id, name, created_at")
-    .eq("role", "student")
-    .order("created_at", { ascending: false })
-    .limit(5);
-
-  const { data: recentMeals } = await supabaseAdmin
-    .from("meals")
-    .select("id, name, created_at")
-    .order("created_at", { ascending: false })
-    .limit(5);
 
   const activities = [
     ...(recentStudents || []).map(s => ({
@@ -90,13 +64,7 @@ export default async function AdminDashboardPage() {
     }))
   ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 8);
 
-  // Fetch recent feedback
-  const { data: feedbackRaw } = await supabaseAdmin
-    .from('meal_feedback')
-    .select('id, rating, comment, created_at, student_id, weekly_menu_id, date')
-    .order('created_at', { ascending: false })
-    .limit(5);
-
+  // Enrich feedback with user & menu info (parallel if data exists)
   let initialFeedback: {
     id: string;
     student_name: string;
@@ -111,16 +79,12 @@ export default async function AdminDashboardPage() {
 
   if (feedbackRaw && feedbackRaw.length > 0) {
     const fbStudentIds = [...new Set(feedbackRaw.map(f => f.student_id))];
-    const { data: fbUsers } = await supabaseAdmin
-      .from('users')
-      .select('id, name, token_number')
-      .in('id', fbStudentIds);
-
     const fbMenuIds = [...new Set(feedbackRaw.map(f => f.weekly_menu_id))];
-    const { data: fbMenus } = await supabaseAdmin
-      .from('weekly_menus')
-      .select('id, meal_slot')
-      .in('id', fbMenuIds);
+
+    const [{ data: fbUsers }, { data: fbMenus }] = await Promise.all([
+      supabaseAdmin.from('users').select('id, name, token_number').in('id', fbStudentIds),
+      supabaseAdmin.from('weekly_menus').select('id, meal_slot').in('id', fbMenuIds),
+    ]);
 
     const userMap = Object.fromEntries((fbUsers ?? []).map(u => [u.id, u]));
     const menuMap = Object.fromEntries((fbMenus ?? []).map(m => [m.id, m]));

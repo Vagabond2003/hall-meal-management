@@ -98,38 +98,39 @@ export default function MealSelectionClient() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      // 1. Fetch meal slots globally if not already present
-      if (slots.length === 0) {
-        const slotsRes = await fetch('/api/admin/meal-slots');
-        if (slotsRes.ok) {
-           const slotsData = await slotsRes.json();
-           setSlots(slotsData.slots?.filter((s: MealSlot) => s.is_active) || []);
-        }
-      }
-
-      // Fetch menus and slots for rolling 7-day window
+      // Compute date range
       const base = activeTab === "today"
         ? addDays(startOfDay(new Date()), todayOffset)
         : addDays(startOfDay(new Date()), weekOffset * 7);
       const todayStr = fmt(base);
       const endDateStr = fmt(addDays(base, activeTab === "today" ? 0 : 6));
-      
-      const menuRes = await fetch(`/api/student/weekly-menu?startDate=${todayStr}&endDate=${endDateStr}`);
+
+      // Fire ALL requests in parallel
+      const [slotsRes, menuRes, selRes] = await Promise.all([
+        slots.length === 0 ? fetch('/api/admin/meal-slots') : Promise.resolve(null),
+        fetch(`/api/student/weekly-menu?startDate=${todayStr}&endDate=${endDateStr}`),
+        fetch(`/api/student/selections?startDate=${todayStr}&endDate=${endDateStr}`),
+      ]);
+
+      // Process slots (only if we fetched them)
+      if (slotsRes && slotsRes.ok) {
+        const slotsData = await slotsRes.json();
+        setSlots(slotsData.slots?.filter((s: MealSlot) => s.is_active) || []);
+      }
+
+      // Process menus
       if (!menuRes.ok) throw new Error("Failed to fetch menus");
       const menuData = await menuRes.json();
-      
-      // If we couldn't fetch global slots, fallback to what the weekly-menu endpoint returns
       if (slots.length === 0 && menuData.slots) {
-         setSlots(menuData.slots);
+        setSlots(menuData.slots);
       }
       setMenus(menuData.menus || []);
-      
-      // Fetch selections for the same window
-      const selRes = await fetch(`/api/student/selections?startDate=${todayStr}&endDate=${endDateStr}`);
+
+      // Process selections
       if (!selRes.ok) throw new Error("Failed to fetch selections");
       const selData = await selRes.json();
       setSelections(selData.selections?.map((s: any) => s.weekly_menu_id || s.meal_id) || []);
-      
+
     } catch (err) {
       toast.error("Failed to load meal data");
     } finally {
