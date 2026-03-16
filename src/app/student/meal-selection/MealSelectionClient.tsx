@@ -7,6 +7,7 @@ import FeedbackModal from "@/components/FeedbackModal";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
 import { motion } from "framer-motion";
+import { format12h } from "@/lib/utils";
 
 type MealSlot = {
   id: string;
@@ -31,6 +32,7 @@ export default function MealSelectionClient() {
   const userName = session?.user?.name ?? "";
   const tokenNumber = session?.user?.token_number ?? "";
   const [deadline, setDeadline] = useState("10:00 PM");
+  const [rawDeadline, setRawDeadline] = useState("22:00:00");
 
   const currentMonthName = new Date().toLocaleString("en-US", {
     month: "long", year: "numeric", timeZone: "Asia/Dhaka"
@@ -90,7 +92,10 @@ export default function MealSelectionClient() {
     fetch("/api/student/settings")
       .then(res => res.json())
       .then(data => {
-        if (data.deadline) setDeadline(data.deadline);
+        if (data.deadline) {
+          setDeadline(format12h(data.deadline));
+          setRawDeadline(data.deadline);
+        }
       })
       .catch(() => {});
   }, []);
@@ -195,12 +200,11 @@ export default function MealSelectionClient() {
     // Past dates are locked
     if (isBefore(targetDate, today)) return true;
     
-    // For today, after 10:00 (simple mock, normally fetched from settings)
+    // For today, after the deadline
     if (isSameDay(targetDate, today)) {
        const dhakaTime = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Dhaka" }));
-       // Parse cutoff here if from settings, else fallback to 10
-       const cutoffHour = 10;
-       const cutoffMinute = 0;
+       const [cutoffHour, cutoffMinute] = rawDeadline.split(":").map(Number);
+       
        if (dhakaTime.getHours() > cutoffHour || (dhakaTime.getHours() === cutoffHour && dhakaTime.getMinutes() >= cutoffMinute)) {
          return true;
        }

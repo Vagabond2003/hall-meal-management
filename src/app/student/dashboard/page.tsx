@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { DashboardClient } from "./DashboardClient";
 
+import { format12h } from "@/lib/utils";
+
 export const dynamic = "force-dynamic";
 
 export default async function StudentDashboardPage() {
@@ -47,8 +49,7 @@ export default async function StudentDashboardPage() {
   const uniqueDays = new Set(allSelections.map((s) => s.date)).size;
 
   // Deadline check
-  const [dh, dm] = deadline.split(":").map(Number);
-  const deadlineDisplay = `${dh > 12 ? dh - 12 : dh}:${String(dm).padStart(2, "0")} ${dh >= 12 ? "PM" : "AM"}`;
+  const deadlineDisplay = format12h(deadline);
   const mealSelectionEnabled = user?.meal_selection_enabled ?? true;
   const currentMonthName = format(now, "MMMM yyyy");
 
