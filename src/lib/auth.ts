@@ -1,28 +1,8 @@
 import { NextAuthOptions, getServerSession, DefaultSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-
-declare module "next-auth" {
-  interface Session {
-    user: {
-      id: string;
-      role: string;
-      is_approved: boolean;
-      is_active: boolean;
-      token_number?: string | null;
-      meal_selection_enabled?: boolean | null;
-    } & DefaultSession["user"];
-  }
-
-  interface User {
-    role: string;
-    is_approved: boolean;
-    is_active: boolean;
-    token_number?: string | null;
-    meal_selection_enabled?: boolean | null;
-  }
-}
 import bcrypt from "bcryptjs";
 import { supabaseAdmin } from "./supabase";
+
 
 export async function requireStudent() {
   const session = await getServerSession(authOptions);
