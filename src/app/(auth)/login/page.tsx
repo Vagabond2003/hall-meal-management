@@ -29,20 +29,17 @@ export default function LoginPage() {
 
       if (res?.error) {
         toast.error(res.error);
-        setIsLoading(false);
       } else {
         toast.success("Login successful!");
-        // We let middleware redirect based on role in reality, 
-        // but we can push to a common point, or push home and let middleware redirect.
-        router.push("/");
-        router.refresh();
+        // Single navigation call — no race condition
+        window.location.href = "/";
       }
     } catch {
-      toast.error("Something went wrong");
+      toast.error("Something went wrong. Please try again.");
+    } finally {
       setIsLoading(false);
     }
   };
-
   return (
     <div className="min-h-screen flex w-full">
       {/* Left Panel - Hidden on mobile */}
@@ -84,8 +81,8 @@ export default function LoginPage() {
             <div className="space-y-2">
               <label className="text-sm font-medium text-text-primary block">Email Address</label>
               <div className="relative">
-                <Input 
-                  type="email" 
+                <Input
+                  type="email"
                   placeholder="name@example.com"
                   className="pl-10 h-12"
                   value={email}
@@ -103,7 +100,7 @@ export default function LoginPage() {
                 <Link href="/forgot-password" className="text-sm text-accent-gold hover:underline font-medium">Forgot password?</Link>
               </div>
               <div className="relative">
-                <Input 
+                <Input
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   className="pl-10 pr-10 h-12"
@@ -123,8 +120,8 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full h-12 bg-primary hover:bg-primary-light text-white text-base font-semibold shadow-btn-hover btn-hover mt-4"
               disabled={isLoading}
             >
