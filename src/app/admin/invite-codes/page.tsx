@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -311,57 +312,60 @@ export default function InviteCodesPage() {
       )}
 
       {/* Generate Confirmation Dialog */}
-      <AnimatePresence>
-        {showConfirm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-              onClick={() => setShowConfirm(false)}
-            />
-            <motion.div
-              variants={scaleFadeIn}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              className="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 z-10 text-center"
-            >
-              <button
+      {showConfirm &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <AnimatePresence>
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
                 onClick={() => setShowConfirm(false)}
-                className="absolute top-4 right-4 text-text-secondary hover:bg-surface-secondary p-1.5 rounded-full transition-colors"
+              />
+              <motion.div
+                variants={scaleFadeIn}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                className="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 z-10 text-center"
               >
-                <X className="w-4 h-4" />
-              </button>
-              <div className="w-12 h-12 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
-                <AlertTriangle className="w-6 h-6" />
-              </div>
-              <h3 className="text-xl font-heading font-bold text-text-primary mb-2">Generate Codes?</h3>
-              <p className="text-text-secondary text-sm mb-6">
-                This will generate 400 new invite codes valid for 7 days.
-                Existing unused codes will remain. Continue?
-              </p>
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  className="flex-1"
+                <button
                   onClick={() => setShowConfirm(false)}
+                  className="absolute top-4 right-4 text-text-secondary hover:bg-surface-secondary p-1.5 rounded-full transition-colors"
                 >
-                  Cancel
-                </Button>
-                <Button
-                  className="flex-1 bg-primary hover:bg-primary-dark"
-                  onClick={handleGenerate}
-                >
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Generate
-                </Button>
-              </div>
-            </motion.div>
-          </div>
+                  <X className="w-4 h-4" />
+                </button>
+                <div className="w-12 h-12 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <h3 className="text-xl font-heading font-bold text-text-primary mb-2">Generate Codes?</h3>
+                <p className="text-text-secondary text-sm mb-6">
+                  This will generate 400 new invite codes valid for 7 days.
+                  Existing unused codes will remain. Continue?
+                </p>
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setShowConfirm(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    className="flex-1 bg-primary hover:bg-primary-dark"
+                    onClick={handleGenerate}
+                  >
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Generate
+                  </Button>
+                </div>
+              </motion.div>
+            </div>
+          </AnimatePresence>,
+          document.body
         )}
-      </AnimatePresence>
     </div>
   );
 }
