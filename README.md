@@ -1,5 +1,7 @@
 # 🍽️ Online Hall Meal Management System
 
+Built by **Nafiz Mahmud Rimon** (Department of CSE, Level 2, Term 1, ID: 0802420205101094) and **Anika Akter** (Department of CSE, Level 2, Term 2, ID: 0802420105101072).
+
 A modern, full-stack web application for managing university hall meals. Students can select/deselect daily meals, view their meal history and billing. Admins can manage meals, approve students, generate PDF reports, and track billing.
 
 Built with **Next.js 16**, **Supabase**, **NextAuth**, **Framer Motion**, and **Tailwind CSS v4**.
@@ -58,12 +60,13 @@ npm install
 1. Go to [supabase.com](https://supabase.com) and create a new project.
 2. Once your project is ready, go to **SQL Editor** in the Supabase dashboard.
 3. Copy the entire contents of the `database-setup.sql` file from this project and paste it into the SQL Editor.
-4. Click **Run** to execute. This creates all 5 required tables:
+4. Click **Run** to execute. This creates all 6 required tables:
    - `users` — stores students and admins
    - `meals` — stores all regular and special meals
    - `meal_selections` — tracks which meals each student selected per day
    - `monthly_billing` — monthly cost summaries per student
    - `settings` — global settings (meal selection deadline, admin secret code)
+   - `invite_codes` — stores registration invite codes
 5. The SQL also inserts default settings with the admin secret code: `HallAdmin2024!`
 
 #### Full SQL Schema
@@ -76,10 +79,13 @@ CREATE TABLE users (
     email TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
     role TEXT CHECK (role IN ('student', 'admin')) DEFAULT 'student',
-    rna_number TEXT UNIQUE,
+    token_number TEXT UNIQUE,
     is_approved BOOLEAN DEFAULT FALSE,
     is_active BOOLEAN DEFAULT TRUE,
     meal_selection_enabled BOOLEAN DEFAULT TRUE,
+    theme VARCHAR DEFAULT 'light',
+    notification_preferences JSONB DEFAULT '{}',
+    last_password_changed_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -126,21 +132,34 @@ CREATE TABLE settings (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 6. Default Settings
+-- 6. InviteCodes Table
+CREATE TABLE invite_codes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code TEXT UNIQUE NOT NULL,
+    is_used BOOLEAN DEFAULT FALSE,
+    expires_at TIMESTAMPTZ NOT NULL,
+    used_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 7. Default Settings
 INSERT INTO settings (admin_secret_code) VALUES ('HallAdmin2024!');
 
--- 7. Enable RLS & Service Role Policies
+-- 8. Enable RLS & Service Role Policies
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE meals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE meal_selections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE monthly_billing ENABLE ROW LEVEL SECURITY;
 ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE invite_codes ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Service Role Full Access Users" ON users FOR ALL USING (true);
 CREATE POLICY "Service Role Full Access Meals" ON meals FOR ALL USING (true);
 CREATE POLICY "Service Role Full Access Selections" ON meal_selections FOR ALL USING (true);
 CREATE POLICY "Service Role Full Access Billing" ON monthly_billing FOR ALL USING (true);
 CREATE POLICY "Service Role Full Access Settings" ON settings FOR ALL USING (true);
+CREATE POLICY "Service Role Full Access InviteCodes" ON invite_codes FOR ALL USING (true);
 ```
 
 ### 3. Configure Environment Variables
@@ -159,6 +178,11 @@ NEXTAUTH_URL=http://localhost:3000
 
 # Cron Secret — generate a random string to secure cron endpoints
 CRON_SECRET=your-cron-secret-string
+
+# Email (Optional — for password resets & notifications)
+RESEND_API_KEY=your-resend-key
+BREVO_SMTP_USER=your-brevo-user
+BREVO_SMTP_PASS=your-brevo-pass
 ```
 
 | Variable                       | Description                                                                 |
@@ -169,6 +193,9 @@ CRON_SECRET=your-cron-secret-string
 | `NEXTAUTH_SECRET`              | A random string used to encrypt sessions (run `openssl rand -hex 16`)      |
 | `NEXTAUTH_URL`                 | The base URL of your app (`http://localhost:3000` for dev)                  |
 | `CRON_SECRET`                  | A random string to authenticate cron job requests                          |
+| `RESEND_API_KEY`               | API Key for Resend (used for modern email delivery)                        |
+| `BREVO_SMTP_USER`              | SMTP username for Brevo (alternative email delivery)                       |
+| `BREVO_SMTP_PASS`              | SMTP password/API key for Brevo                                            |
 
 ### 4. Run the Development Server
 
@@ -246,9 +273,40 @@ Both cron endpoints are protected with `CRON_SECRET` via the `Authorization: Bea
 | Role    | How to Create                                                           |
 |---------|-------------------------------------------------------------------------|
 | Admin   | Sign up at `/signup` with the Admin Secret Code: `HallAdmin2024!`       |
-| Student | Sign up at `/signup` without entering a secret code                     |
+| Student | Sign up at `/signup` with a valid invite code (generated by admin)         |
 
-> **Note**: Student accounts require admin approval before they can log in and use the system.
+> **Note**: Student accounts require admin approval before they can log in. Admins can generate invite codes from the Admin Dashboard → Invite Codes → "Generate 400 Codes".
+
+---
+
+## 🐛 Troubleshooting
+
+### Login shows "successful" but redirects back to login
+- Check that your Supabase `users` table column is named `token_number` (not `rna_number`)
+- Verify `NEXTAUTH_URL` matches your exact domain with `https://` and no trailing slash
+- Ensure `NEXTAUTH_SECRET` is set and consistent between local and production
+- Check browser DevTools → Application → Cookies for `next-auth.session-token` after login
+
+### Invite code modal doesn't appear when clicking "Generate"
+- The modal must render outside parent containers using `createPortal` from `react-dom`
+- Ensure no parent element has `overflow: hidden`, `transform`, or `filter` CSS that clips fixed children
+
+### Build fails with "All declarations of 'id' must have identical modifiers"
+- You have duplicate `declare module "next-auth"` blocks in multiple files
+- Consolidate all NextAuth type extensions into a single file: `src/types/next-auth.d.ts`
+
+### TypeScript errors about `rna_number`
+- Search and replace all `rna_number` references with `token_number` across the codebase
+- The database column, type definitions, and API queries must all match
+
+### Cron jobs not running
+- Verify `CRON_SECRET` is set in Vercel environment variables
+- Check Vercel Dashboard → Cron Jobs for schedule configuration
+- Ensure your Vercel plan supports cron jobs (Pro plan required)
+
+### "Failed to compile" after pulling from GitHub
+- Run `rm -rf .next node_modules package-lock.json && npm install`
+- Ensure only one `package-lock.json` exists in the project root
 
 ---
 
