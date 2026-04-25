@@ -55,7 +55,8 @@ export function StudentSidebar() {
         "fixed inset-y-0 left-0 z-50 w-64 bg-primary text-white flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0",
         mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
       )}>
-        <div className="flex items-center justify-between p-6 mb-6">
+        {/* Header - fixed at top */}
+        <div className="flex items-center justify-between p-6 mb-6 shrink-0">
           <div className="flex items-center gap-3">
             <UtensilsCrossed className="w-7 h-7 text-accent-gold shrink-0" />
             <span className="font-heading text-base font-bold tracking-wider leading-tight">ONLINE HALL<br/>MEAL MANAGER</span>
@@ -68,7 +69,8 @@ export function StudentSidebar() {
           </button>
         </div>
 
-        <div className="flex-1 px-4 space-y-2 overflow-y-auto">
+        {/* Navigation - scrollable */}
+        <div className="flex-1 px-4 space-y-2 overflow-y-auto min-h-0">
           {studentNavigation.map((item) => {
             const isActive = pathname.startsWith(item.href);
             return (
@@ -98,7 +100,8 @@ export function StudentSidebar() {
           })}
         </div>
 
-        <div className="p-4 border-t border-white/10">
+        {/* Logout - sticky at bottom */}
+        <div className="p-4 border-t border-white/10 shrink-0 bg-primary">
           <Button 
             variant="ghost"
             onClick={() => signOut({ callbackUrl: "/login" })}

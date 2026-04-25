@@ -62,7 +62,8 @@ export function AdminSidebar() {
         "fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 border-r border-slate-800 text-slate-300 flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0",
         mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
       )}>
-        <div className="flex items-center justify-between p-6 mb-6">
+        {/* Header - fixed at top */}
+        <div className="flex items-center justify-between p-6 mb-6 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-accent-gold/20 rounded-md flex items-center justify-center shrink-0">
               <UtensilsCrossed className="w-5 h-5 text-accent-gold" />
@@ -77,7 +78,8 @@ export function AdminSidebar() {
           </button>
         </div>
 
-        <div className="flex-1 px-4 space-y-2 overflow-y-auto">
+        {/* Navigation - scrollable */}
+        <div className="flex-1 px-4 space-y-2 overflow-y-auto min-h-0">
           {adminNavigation.map((item) => {
             const isActive = pathname.startsWith(item.href);
             return (
@@ -109,7 +111,8 @@ export function AdminSidebar() {
           })}
         </div>
 
-        <div className="p-4 border-t border-slate-800">
+        {/* Logout - sticky at bottom */}
+        <div className="p-4 border-t border-slate-800 shrink-0 bg-slate-900">
           <Button 
             variant="ghost"
             onClick={() => signOut({ callbackUrl: "/login" })}
