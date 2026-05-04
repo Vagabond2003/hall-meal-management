@@ -12,8 +12,10 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json().catch(() => ({}));
-    const month = body.month || new Date().getMonth() + 1;
-    const year = body.year || new Date().getFullYear();
+    const bangladeshTimeStr = new Date().toLocaleString("en-US", { timeZone: "Asia/Dhaka" });
+    const bangladeshDate = new Date(bangladeshTimeStr);
+    const month = body.month || bangladeshDate.getMonth() + 1;
+    const year = body.year || bangladeshDate.getFullYear();
 
     const { data: students, error: studentError } = await supabaseAdmin
       .from("users")
