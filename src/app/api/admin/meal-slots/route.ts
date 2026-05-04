@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export async function GET() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const { data: slots, error } = await supabaseAdmin
       .from("meal_slots")
@@ -17,6 +24,11 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id || session.user.role !== "admin") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const body = await request.json();
     const { slots } = body;
@@ -25,17 +37,13 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "slots must be an array" }, { status: 400 });
     }
 
-    // Since Supabase doesn't easily support bulk upserting with different conditions in one simple call without a stored procedure,
-    // we iterate or use an upsert if id is provided.
     const upsertData = slots.map((s: any) => {
       const data: any = {
         name: s.name,
         display_order: s.display_order,
         is_active: s.is_active ?? true,
       };
-      if (s.id) {
-        data.id = s.id;
-      }
+      if (s.id) data.id = s.id;
       return data;
     });
 
