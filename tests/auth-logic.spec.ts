@@ -65,8 +65,7 @@ test('forgot password with empty email is blocked', async ({ page }) => {
   await expect(page).not.toHaveURL(/error/);
 });
 
-// BUG: /dashboard is publicly accessible without auth — needs middleware fix
-test.fail('dashboard redirects to login when not authenticated', async ({ page }) => {
+test('dashboard redirects to login when not authenticated', async ({ page }) => {
   await page.goto(`${BASE}/dashboard`);
   await expect(page).toHaveURL(/login/);
 });
