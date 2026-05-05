@@ -23,6 +23,12 @@ export async function GET(request: NextRequest) {
 
   const yearNum = Number(year);
   const monthNum = Number(month);
+  if (isNaN(monthNum) || monthNum < 1 || monthNum > 12) {
+    return NextResponse.json({ error: "Invalid month" }, { status: 400 });
+  }
+  if (isNaN(yearNum) || yearNum < 2000 || yearNum > 2100) {
+    return NextResponse.json({ error: "Invalid year" }, { status: 400 });
+  }
 
   const startDate = `${yearNum}-${String(monthNum).padStart(2, "0")}-01`;
   const endDateObj = new Date(yearNum, monthNum, 0);
