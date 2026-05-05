@@ -23,7 +23,7 @@ export async function calculateMonthlyBill(studentId: string, month: number, yea
   let totalCost = 0;
   if (selections) {
     totalCost = selections.reduce(
-      (sum, sel: any) => sum + Number(sel.price ?? sel.weekly_menus?.price ?? 0),
+      (sum, sel: any) => sum + Math.max(0, Number(sel.price ?? sel.weekly_menus?.price ?? 0)),
       0
     );
   }
