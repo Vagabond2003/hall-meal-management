@@ -2,10 +2,10 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { motion } from "framer-motion";
+import { useRouter, useSearchParams } from "next/navigation";
 import { StatCard } from "@/components/shared/StatCard";
 import { LoadingSkeleton } from "@/components/shared/LoadingSkeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { MealSubscribersDrawer } from "@/components/admin/MealSubscribersDrawer";
 import {
   BarChart2,
   TrendingUp,
@@ -61,13 +61,22 @@ const CustomTooltip = ({ active, payload, label, formatter, labelFormatter }: an
 };
 
 export default function AnalyticsClient() {
-  const [data, setData] = useState<AnalyticsData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   const today = new Date();
-  const [selectedMonth, setSelectedMonth] = useState(today.getMonth() + 1);
-  const [selectedYear, setSelectedYear] = useState(today.getFullYear());
+  const urlMonth = Number(searchParams.get("month"));
+  const urlYear = Number(searchParams.get("year"));
+
+  const [selectedMonth, setSelectedMonth] = useState(
+    urlMonth >= 1 && urlMonth <= 12 ? urlMonth : today.getMonth() + 1
+  );
+  const [selectedYear, setSelectedYear] = useState(
+    urlYear >= 2000 && urlYear <= 2100 ? urlYear : today.getFullYear()
+  );
+
+  const [data, setData] = useState<AnalyticsData | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const fetchAnalytics = async (month: number, year: number) => {
     setLoading(true);
@@ -160,7 +169,7 @@ export default function AnalyticsClient() {
           icon={<UtensilsCrossed className="w-5 h-5 text-primary" />}
           iconBg="bg-primary-muted"
           delay={100}
-          onClick={() => setIsDrawerOpen(true)}
+          onClick={() => router.push(`/admin/analytics/meal-subscribers?month=${selectedMonth}&year=${selectedYear}`)}
         />
         <StatCard
           label="Total Revenue This Month"
@@ -448,12 +457,6 @@ export default function AnalyticsClient() {
 
       </div>
 
-      <MealSubscribersDrawer
-        isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
-        month={selectedMonth}
-        year={selectedYear}
-      />
     </motion.div>
   );
 }
