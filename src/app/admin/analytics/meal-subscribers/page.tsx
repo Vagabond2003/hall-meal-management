@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { getMealSubscribers } from "@/lib/analytics/getMealSubscribers";
 import MealSubscribersTable from "./MealSubscribersTable";
 
 export const dynamic = "force-dynamic";
@@ -24,16 +25,7 @@ export default async function MealSubscribersPage({ searchParams }: PageProps) {
     redirect("/admin/analytics");
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== "undefined" ? window.location.origin : "http://localhost:3000");
-  const apiUrl = `${appUrl}/api/admin/analytics/meal-subscribers?month=${month}&year=${year}`;
-
-  const res = await fetch(apiUrl, { cache: "no-store" });
-
-  if (!res.ok) {
-    redirect("/admin/analytics");
-  }
-
-  const data = await res.json();
+  const data = await getMealSubscribers(month, year);
 
   return (
     <MealSubscribersTable
