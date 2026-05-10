@@ -5,10 +5,11 @@ import { motion } from "framer-motion";
 import { StatCard } from "@/components/shared/StatCard";
 import { LoadingSkeleton } from "@/components/shared/LoadingSkeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { 
-  BarChart2, 
-  TrendingUp, 
-  Users, 
+import { MealSubscribersDrawer } from "@/components/admin/MealSubscribersDrawer";
+import {
+  BarChart2,
+  TrendingUp,
+  Users,
   UtensilsCrossed,
   DollarSign,
   CalendarDays
@@ -62,7 +63,8 @@ const CustomTooltip = ({ active, payload, label, formatter, labelFormatter }: an
 export default function AnalyticsClient() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
-  
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
   const today = new Date();
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(today.getFullYear());
@@ -158,6 +160,7 @@ export default function AnalyticsClient() {
           icon={<UtensilsCrossed className="w-5 h-5 text-primary" />}
           iconBg="bg-primary-muted"
           delay={100}
+          onClick={() => setIsDrawerOpen(true)}
         />
         <StatCard
           label="Total Revenue This Month"
@@ -444,6 +447,13 @@ export default function AnalyticsClient() {
         </motion.div>
 
       </div>
+
+      <MealSubscribersDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        month={selectedMonth}
+        year={selectedYear}
+      />
     </motion.div>
   );
 }

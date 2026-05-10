@@ -15,6 +15,7 @@ interface StatCardProps {
   delay?: number;
   isText?: boolean; // if true, skip count-up and show as text
   valueColor?: string;
+  onClick?: () => void;
 }
 
 function useCountUp(target: number, duration = 1200, delay = 0) {
@@ -54,6 +55,7 @@ export function StatCard({
   delay = 0,
   isText = false,
   valueColor,
+  onClick,
 }: StatCardProps) {
   const numericValue = typeof value === "number" ? value : 0;
   const count = useCountUp(isText ? 0 : numericValue, 1200, delay);
@@ -64,7 +66,13 @@ export function StatCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: delay / 1000, ease: "easeOut" }}
       whileHover={{ y: -2, boxShadow: "0 4px 20px rgba(0,0,0,0.1)" }}
-      className="bg-surface rounded-2xl border border-border/50 p-6 shadow-sm transition-shadow"
+      onClick={onClick}
+      className={cn(
+        "bg-surface rounded-2xl border p-6 shadow-sm transition-shadow",
+        onClick
+          ? "cursor-pointer hover:border-primary/40 border-border/50"
+          : "border-border/50"
+      )}
     >
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm font-medium text-text-secondary">{label}</p>
