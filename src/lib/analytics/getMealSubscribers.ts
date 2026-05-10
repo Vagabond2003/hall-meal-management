@@ -57,25 +57,42 @@ export async function getMealSubscribers(
 
   if (studentsError) throw new Error(studentsError.message);
 
-  // Fetch meal selections with meal/weekly_menu info for the month
+  // Fetch meal selections for the month (no joins — avoid PostgREST schema cache issues)
   const { data: selections, error: selectionsError } = await supabaseAdmin
     .from("meal_selections")
-    .select(
-      `
-        student_id,
-        date,
-        is_selected,
-        weekly_menu_id,
-        meal_id,
-        weekly_menus:weekly_menu_id(meal_slot),
-        meals:meal_id(name)
-      `
-    )
+    .select("student_id, date, is_selected, weekly_menu_id, meal_id")
     .eq("is_selected", true)
     .gte("date", startDateStr)
     .lte("date", endDateStr);
 
   if (selectionsError) throw new Error(selectionsError.message);
+
+  // Fetch weekly_menus and meals lookup tables in parallel
+  const uniqueWeeklyMenuIds = [
+    ...new Set((selections || []).map((s: any) => s.weekly_menu_id).filter(Boolean)),
+  ];
+  const uniqueMealIds = [
+    ...new Set((selections || []).map((s: any) => s.meal_id).filter(Boolean)),
+  ];
+
+  const [weeklyMenusRes, mealsRes] = await Promise.all([
+    uniqueWeeklyMenuIds.length > 0
+      ? supabaseAdmin.from("weekly_menus").select("id, meal_slot").in("id", uniqueWeeklyMenuIds)
+      : Promise.resolve({ data: [] as any[], error: null }),
+    uniqueMealIds.length > 0
+      ? supabaseAdmin.from("meals").select("id, name").in("id", uniqueMealIds)
+      : Promise.resolve({ data: [] as any[], error: null }),
+  ]);
+
+  if (weeklyMenusRes.error) throw new Error(weeklyMenusRes.error.message);
+  if (mealsRes.error) throw new Error(mealsRes.error.message);
+
+  const weeklyMenuMap = new Map<string, string>(
+    (weeklyMenusRes.data || []).map((wm: any) => [wm.id, wm.meal_slot])
+  );
+  const mealMap = new Map<string, string>(
+    (mealsRes.data || []).map((m: any) => [m.id, m.name])
+  );
 
   // Group selections by student_id, then by date
   const studentDateMap = new Map<
@@ -86,7 +103,10 @@ export async function getMealSubscribers(
   const mealBreakdown = { breakfast: 0, lunch: 0, dinner: 0, total: 0 };
 
   (selections || []).forEach((sel: any) => {
-    const slot = sel.weekly_menus?.meal_slot || sel.meals?.name || "";
+    const slot =
+      weeklyMenuMap.get(sel.weekly_menu_id) ||
+      mealMap.get(sel.meal_id) ||
+      "";
     const slotLower = String(slot).toLowerCase();
 
     let mealType: "breakfast" | "lunch" | "dinner" | null = null;
