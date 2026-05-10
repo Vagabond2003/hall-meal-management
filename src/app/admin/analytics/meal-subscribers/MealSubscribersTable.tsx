@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
   ArrowLeft,
-  Download,
+  FileDown,
   Search,
   ChevronRight,
   RotateCcw,
@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { EmptyState } from "@/components/shared/EmptyState";
 import Link from "next/link";
+import MealPDFGeneratorModal from "@/components/admin/MealPDFGeneratorModal";
 
 interface MealDate {
   date: string;
@@ -108,53 +109,6 @@ function formatDate(dateStr: string) {
   });
 }
 
-function exportToCSV(students: Student[], month: number, year: number) {
-  const monthStr = monthNames[month - 1];
-  const headers = [
-    "Student Name",
-    "Token No",
-    "RNA Number",
-    "Room No",
-    "Date",
-    "Breakfast",
-    "Lunch",
-    "Dinner",
-  ];
-
-  const rows: string[][] = [];
-  students.forEach((student) => {
-    const dates = student.meal_dates.length > 0 ? student.meal_dates : [{ date: "", breakfast: false, lunch: false, dinner: false }];
-    dates.forEach((md) => {
-      rows.push([
-        student.name,
-        student.token_number,
-        student.rna_number,
-        student.room_no,
-        md.date ? formatDate(md.date) : "N/A",
-        md.breakfast ? "Yes" : "No",
-        md.lunch ? "Yes" : "No",
-        md.dinner ? "Yes" : "No",
-      ]);
-    });
-  });
-
-  const csvContent = [headers, ...rows]
-    .map((r) =>
-      r.map((cell) => `"${String(cell ?? "N/A").replace(/"/g, '""')}"`).join(",")
-    )
-    .join("\n");
-
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `meal-subscribers-${monthStr.toLowerCase()}-${year}.csv`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-}
-
 export default function MealSubscribersTable({
   initialData,
   month,
@@ -165,6 +119,7 @@ export default function MealSubscribersTable({
   const [mealFilter, setMealFilter] = useState<MealFilter>("All");
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [isPDFModalOpen, setIsPDFModalOpen] = useState(false);
 
   const students = initialData.students ?? [];
   const mealBreakdown = initialData.mealBreakdown ?? { breakfast: 0, lunch: 0, dinner: 0, total: 0 };
@@ -259,17 +214,11 @@ export default function MealSubscribersTable({
             Refresh
           </button>
           <button
-            onClick={() => exportToCSV(filtered, month, year)}
-            disabled={filtered.length === 0}
-            className={cn(
-              "inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl transition-colors",
-              filtered.length === 0
-                ? "bg-surface-secondary text-text-disabled cursor-not-allowed"
-                : "bg-primary text-white hover:bg-primary/90"
-            )}
+            onClick={() => setIsPDFModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl bg-primary text-white hover:bg-primary/90 transition-colors"
           >
-            <Download className="w-4 h-4" />
-            Export CSV
+            <FileDown className="w-4 h-4" />
+            Generate PDF Report
           </button>
         </div>
       </div>
@@ -672,6 +621,11 @@ export default function MealSubscribersTable({
           })
         )}
       </div>
+
+      <MealPDFGeneratorModal
+        isOpen={isPDFModalOpen}
+        onClose={() => setIsPDFModalOpen(false)}
+      />
     </motion.div>
   );
 }
