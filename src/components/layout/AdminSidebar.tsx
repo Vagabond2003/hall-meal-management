@@ -4,9 +4,9 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { 
-  LayoutDashboard, 
-  UtensilsCrossed, 
+import {
+  LayoutDashboard,
+  UtensilsCrossed,
   Users,
   Settings,
   LogOut,
@@ -17,7 +17,8 @@ import {
   Megaphone,
   BarChart2,
   Ticket,
-  UserCog
+  UserCog,
+  CreditCard,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { Button } from "../ui/button";
@@ -25,6 +26,7 @@ import { Button } from "../ui/button";
 const adminNavigation = [
   { name: "Overview", href: "/admin/dashboard", icon: LayoutDashboard },
   { name: "Analytics", href: "/admin/analytics", icon: BarChart2 },
+  { name: "Billing", href: "/admin/billing", icon: CreditCard },
   { name: "Students", href: "/admin/students", icon: Users },
   { name: "Invite Codes", href: "/admin/invite-codes", icon: Ticket },
   { name: "Weekly Menu", href: "/admin/weekly-menu", icon: Calendar },

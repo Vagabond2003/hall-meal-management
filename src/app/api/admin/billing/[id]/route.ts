@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 
+export const dynamic = "force-dynamic";
+
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -17,7 +19,7 @@ export async function PATCH(
 
     const { is_paid } = await request.json();
 
-    if (typeof is_paid !== 'boolean') {
+    if (typeof is_paid !== "boolean") {
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
 
@@ -28,10 +30,18 @@ export async function PATCH(
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      if (error.code === "PGRST116") {
+        return NextResponse.json({ error: "Billing record not found" }, { status: 404 });
+      }
+      throw error;
+    }
 
-    return NextResponse.json({ message: "Billing status updated", record: data });
+    if (!data) {
+      return NextResponse.json({ error: "Billing record not found" }, { status: 404 });
+    }
 
+    return NextResponse.json({ success: true, billing: data });
   } catch (error) {
     console.error("Billing update error:", error);
     return NextResponse.json(
