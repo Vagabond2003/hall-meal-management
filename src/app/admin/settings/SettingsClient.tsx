@@ -49,6 +49,10 @@ export default function SettingsClient() {
         body: JSON.stringify({ meal_selection_deadline: deadline })
       });
       if (!res.ok) throw new Error("Update failed");
+      const data = await res.json();
+      if (data.settings?.meal_selection_deadline !== undefined) {
+        setDeadline(data.settings.meal_selection_deadline);
+      }
       toast.success("Meal selection deadline updated");
     } catch (err) {
       toast.error("Failed to update deadline");
@@ -71,6 +75,10 @@ export default function SettingsClient() {
         body: JSON.stringify({ admin_secret_code: secretCode })
       });
       if (!res.ok) throw new Error("Update failed");
+      const data = await res.json();
+      if (data.settings?.admin_secret_code !== undefined) {
+        setSecretCode(data.settings.admin_secret_code);
+      }
       toast.success("Admin secret code updated");
     } catch (err) {
       toast.error("Failed to update secret code");
