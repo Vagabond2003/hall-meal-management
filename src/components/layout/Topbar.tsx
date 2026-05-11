@@ -7,7 +7,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 interface Activity {
   id: string;
@@ -19,6 +19,7 @@ interface Activity {
 export function Topbar() {
   const { data: session, status } = useSession();
   const pathname = usePathname();
+  const router = useRouter();
   
   const [showBell, setShowBell] = useState(false);
   const [showUser, setShowUser] = useState(false);
@@ -243,7 +244,12 @@ export function Topbar() {
               >
                 <button 
                   onClick={() => {
-                    toast.info("Account settings coming soon!");
+                    const role = session?.user?.role;
+                    if (role === 'admin') {
+                      router.push('/admin/account-settings');
+                    } else if (role === 'student') {
+                      router.push('/student/account-settings');
+                    }
                     setShowUser(false);
                   }}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-primary dark:text-slate-300 dark:hover:bg-[#1F2B20] transition-colors text-left"

@@ -15,13 +15,13 @@ export default function SettingsClient() {
   const [savingDeadline, setSavingDeadline] = useState(false);
   const [savingSecret, setSavingSecret] = useState(false);
 
-  const fetchSettings = useCallback(async () => {
+  const fetchSettings = useCallback(async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const res = await fetch(`/api/admin/settings`);
       if (!res.ok) throw new Error("Failed to fetch settings");
       const data = await res.json();
-      
+
       if (data.settings) {
         setDeadline(data.settings.meal_selection_deadline || "");
         setSecretCode(data.settings.admin_secret_code || "");
@@ -29,7 +29,7 @@ export default function SettingsClient() {
     } catch (error) {
       toast.error("Could not load settings");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
@@ -54,6 +54,8 @@ export default function SettingsClient() {
         setDeadline(data.settings.meal_selection_deadline);
       }
       toast.success("Meal selection deadline updated");
+      // Re-fetch to guarantee the displayed value is in sync with the server
+      await fetchSettings(true);
     } catch (err) {
       toast.error("Failed to update deadline");
     } finally {
@@ -80,6 +82,8 @@ export default function SettingsClient() {
         setSecretCode(data.settings.admin_secret_code);
       }
       toast.success("Admin secret code updated");
+      // Re-fetch to guarantee the displayed value is in sync with the server
+      await fetchSettings(true);
     } catch (err) {
       toast.error("Failed to update secret code");
     } finally {
@@ -135,9 +139,10 @@ export default function SettingsClient() {
                 id="deadline"
                 type="time"
                 required
+                disabled={savingDeadline}
                 value={deadline}
                 onChange={(e) => setDeadline(e.target.value)}
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary bg-slate-50 dark:bg-[#1F2B20] dark:border-[#2A3A2B] dark:text-white text-lg font-medium tracking-wider dark:[color-scheme:dark]"
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary bg-slate-50 dark:bg-[#1F2B20] dark:border-[#2A3A2B] dark:text-white text-lg font-medium tracking-wider dark:[color-scheme:dark] disabled:opacity-60 disabled:cursor-not-allowed"
               />
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-3 flex gap-2 items-start">
                 <span className="text-amber-600 dark:text-amber-500 font-bold">*</span>
@@ -185,10 +190,11 @@ export default function SettingsClient() {
                   id="secretCode"
                   type={showSecret ? "text" : "password"}
                   required
+                  disabled={savingSecret}
                   value={secretCode}
                   onChange={(e) => setSecretCode(e.target.value)}
                   placeholder="Enter secret code..."
-                  className="w-full pl-4 pr-20 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary bg-slate-50 dark:bg-[#1F2B20] dark:border-[#2A3A2B] dark:text-white"
+                  className="w-full pl-4 pr-20 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary bg-slate-50 dark:bg-[#1F2B20] dark:border-[#2A3A2B] dark:text-white disabled:opacity-60 disabled:cursor-not-allowed"
                 />
                 <button
                   type="button"

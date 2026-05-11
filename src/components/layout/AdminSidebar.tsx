@@ -16,7 +16,8 @@ import {
   ClipboardList,
   Megaphone,
   BarChart2,
-  Ticket
+  Ticket,
+  UserCog
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { Button } from "../ui/button";
@@ -29,6 +30,7 @@ const adminNavigation = [
   { name: "Weekly Menu", href: "/admin/weekly-menu", icon: Calendar },
   { name: "Meal Count", href: "/admin/meal-attendance", icon: ClipboardList },
   { name: "Announcements", href: "/admin/announcements", icon: Megaphone },
+  { name: "Account Settings", href: "/admin/account-settings", icon: UserCog },
   { name: "Settings", href: "/admin/settings", icon: Settings },
 ];
 

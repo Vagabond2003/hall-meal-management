@@ -12,7 +12,8 @@ import {
   LogOut,
   Menu,
   X,
-  Megaphone
+  Megaphone,
+  UserCog
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { Button } from "../ui/button";
@@ -23,6 +24,7 @@ const studentNavigation = [
   { name: "Meal History", href: "/student/history", icon: History },
   { name: "Announcements", href: "/student/announcements", icon: Megaphone },
   { name: "Monthly Bill", href: "/student/billing", icon: Receipt },
+  { name: "Account Settings", href: "/student/account-settings", icon: UserCog },
 ];
 
 export function StudentSidebar() {
