@@ -6,10 +6,11 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  User, Hash, Lock, UtensilsCrossed, ArrowRight, Loader2, Info, Eye, EyeOff, AlertCircle
+  User, Hash, Lock, UtensilsCrossed, ArrowRight, Loader2, Info, Eye, EyeOff, AlertCircle, Home
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
+import { isValidRoomNumber } from "@/lib/roomNumber";
 
 function CompleteRegistrationInner() {
   const router = useRouter();
@@ -28,6 +29,7 @@ function CompleteRegistrationInner() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [tokenNumber, setTokenNumber] = useState("");
+  const [roomNumber, setRoomNumber] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -72,6 +74,23 @@ function CompleteRegistrationInner() {
       return;
     }
 
+    if (signupMode !== "admin") {
+      if (!tokenNumber.trim()) {
+        toast.error("Token number is required");
+        return;
+      }
+      if (!roomNumber.trim()) {
+        toast.error("Room number is required");
+        return;
+      }
+      if (!isValidRoomNumber(roomNumber)) {
+        toast.error(
+          "Room number must be 1–20 characters (letters, numbers, spaces, and hyphens only)"
+        );
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -82,7 +101,9 @@ function CompleteRegistrationInner() {
           token,
           name,
           password,
-          ...(signupMode !== "admin" ? { tokenNumber } : {}),
+          ...(signupMode !== "admin"
+            ? { tokenNumber, roomNumber: roomNumber.trim() }
+            : {}),
         }),
       });
 
@@ -226,7 +247,27 @@ function CompleteRegistrationInner() {
                 </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-4 animate-fade-in stagger-3">
+                {signupMode !== "admin" && (
+                <div className="space-y-2 animate-fade-in stagger-3">
+                  <label className="text-sm font-medium text-text-primary block">Room Number</label>
+                  <div className="relative">
+                    <Input
+                      required
+                      disabled={isSubmitting}
+                      value={roomNumber}
+                      onChange={(e) => setRoomNumber(e.target.value)}
+                      type="text"
+                      placeholder="e.g. 201-A"
+                      maxLength={20}
+                      className="pl-10 h-12"
+                    />
+                    <Home className="w-5 h-5 text-text-disabled absolute left-3 top-1/2 -translate-y-1/2" />
+                  </div>
+                  <p className="text-xs text-text-secondary">Required. 1–20 characters: letters, numbers, spaces, hyphens.</p>
+                </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-4 animate-fade-in stagger-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-text-primary block">Password</label>
                     <div className="relative">
@@ -273,7 +314,7 @@ function CompleteRegistrationInner() {
                   </div>
                 </div>
 
-                <div className="pt-4 animate-fade-in stagger-4">
+                <div className="pt-4 animate-fade-in stagger-5">
                   <Button
                     type="submit"
                     className="w-full h-12 bg-primary hover:bg-primary-light text-white text-base font-semibold shadow-btn-hover btn-hover"

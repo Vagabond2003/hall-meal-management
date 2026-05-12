@@ -15,6 +15,7 @@ CREATE TABLE users (
     password TEXT NOT NULL,
     role TEXT CHECK (role IN ('student', 'admin')) DEFAULT 'student',
     token_number TEXT UNIQUE,
+    room_number VARCHAR(20),
     is_approved BOOLEAN DEFAULT FALSE,
     is_active BOOLEAN DEFAULT TRUE,
     meal_selection_enabled BOOLEAN DEFAULT TRUE,
@@ -332,3 +333,10 @@ CREATE POLICY "Service Role Full Access Impersonation Tokens" ON impersonation_t
 -- =====================================================
 
 INSERT INTO settings (admin_secret_code) VALUES ('HallAdmin2024!');
+
+-- =====================================================
+-- 10. ADDITIVE MIGRATIONS (safe to re-run on existing DBs)
+-- =====================================================
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS room_number VARCHAR(20);
+CREATE INDEX IF NOT EXISTS idx_users_room ON users(room_number);

@@ -34,8 +34,7 @@ interface Student {
   id: string;
   name: string;
   token_number: string;
-  rna_number: string;
-  room_no: string;
+  room_number: string;
   meal_selection_enabled: boolean;
   status: "Active" | "Paused";
   total_meals: number;
@@ -141,7 +140,7 @@ export default function MealSubscribersTable({
         (s) =>
           s.name.toLowerCase().includes(q) ||
           s.token_number.toLowerCase().includes(q) ||
-          s.rna_number.toLowerCase().includes(q)
+          s.room_number.toLowerCase().includes(q)
       );
     }
 
@@ -325,7 +324,7 @@ export default function MealSubscribersTable({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by name / token / RNA..."
+            placeholder="Search by name / token / room..."
             className="w-full pl-9 pr-4 py-2.5 bg-surface border border-border/50 rounded-xl text-sm text-text-primary placeholder:text-text-disabled focus:outline-none focus:border-primary transition-colors"
           />
         </div>
@@ -368,7 +367,7 @@ export default function MealSubscribersTable({
                   <th className="text-left font-medium text-text-secondary px-4 py-3 w-10">#</th>
                   <th className="text-left font-medium text-text-secondary px-4 py-3">Student</th>
                   <th className="text-left font-medium text-text-secondary px-4 py-3">Token</th>
-                  <th className="text-left font-medium text-text-secondary px-4 py-3">RNA No.</th>
+                  <th className="text-left font-medium text-text-secondary px-4 py-3">Room</th>
                   <th className="text-center font-medium text-text-secondary px-4 py-3">Breakfast</th>
                   <th className="text-center font-medium text-text-secondary px-4 py-3">Lunch</th>
                   <th className="text-center font-medium text-text-secondary px-4 py-3">Dinner</th>
@@ -399,7 +398,6 @@ export default function MealSubscribersTable({
                             </div>
                             <div>
                               <p className="font-medium text-text-primary">{student.name}</p>
-                              <p className="text-xs text-text-secondary">Room {student.room_no}</p>
                             </div>
                           </div>
                         </td>
@@ -407,7 +405,7 @@ export default function MealSubscribersTable({
                           <span className="font-mono text-sm bg-gray-100 px-2 py-0.5 rounded">{student.token_number}</span>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="font-mono text-sm bg-gray-100 px-2 py-0.5 rounded">{student.rna_number}</span>
+                          <span className="text-sm text-text-primary">{student.room_number}</span>
                         </td>
                         <td className="px-4 py-3 text-center">
                           {student.has_breakfast ? (
@@ -559,7 +557,7 @@ export default function MealSubscribersTable({
                     <p className="font-medium text-text-primary truncate">{student.name}</p>
                     <div className="flex items-center gap-2 text-xs text-text-secondary">
                       <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded">{student.token_number}</span>
-                      <span>RNA: {student.rna_number}</span>
+                      <span>Room: {student.room_number}</span>
                     </div>
                   </div>
                   <ChevronRight

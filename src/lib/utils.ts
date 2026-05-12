@@ -11,3 +11,9 @@ export function format12h(timeStr: string): string {
   const hour = h % 12 || 12;
   return `${hour}:${String(m).padStart(2, "0")} ${ampm}`;
 }
+
+/** Dorm room for display; use em-dash when unset. */
+export function formatRoomDisplay(room: string | null | undefined): string {
+  const t = room?.trim();
+  return t ? t : "—";
+}

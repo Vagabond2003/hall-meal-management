@@ -9,3 +9,4 @@ CREATE INDEX IF NOT EXISTS idx_monthly_billing_student_month_year ON monthly_bil
 CREATE INDEX IF NOT EXISTS idx_weekly_menus_week_active ON weekly_menus(week_start_date, is_active);
 CREATE INDEX IF NOT EXISTS idx_login_activity_user_created ON login_activity(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_announcements_created ON announcements(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_users_room ON users(room_number);

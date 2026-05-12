@@ -23,6 +23,8 @@ import { addDays, startOfDay } from "date-fns";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { formatRoomDisplay } from "@/lib/utils";
+import { parseOptionalRoomNumber } from "@/lib/roomNumber";
 import { PDFDownloadLink, Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 import { LoadingSkeleton } from "@/components/shared/LoadingSkeleton";
 import {
@@ -41,6 +43,7 @@ interface Student {
   name: string;
   email: string;
   token_number: string;
+  room_number: string | null;
   is_approved: boolean;
   is_active: boolean;
   meal_selection_enabled: boolean;
@@ -176,6 +179,8 @@ const MonthlyReportPDF = ({ student, selections, month, year, billingRecord }: {
 
 export default function StudentDetailClient({ initialStudent }: StudentDetailClientProps) {
   const [student, setStudent] = useState<Student>(initialStudent);
+  const [roomInput, setRoomInput] = useState(initialStudent.room_number ?? "");
+  const [savingRoom, setSavingRoom] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('history');
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -277,6 +282,10 @@ export default function StudentDetailClient({ initialStudent }: StudentDetailCli
     }
   };
 
+  useEffect(() => {
+    setRoomInput(student.room_number ?? "");
+  }, [student.room_number]);
+
   const fetchDetails = useCallback(async () => {
     try {
       setLoadingContext(true);
@@ -356,6 +365,32 @@ export default function StudentDetailClient({ initialStudent }: StudentDetailCli
     }
   };
 
+  const handleSaveRoom = async () => {
+    const parsed = parseOptionalRoomNumber(roomInput);
+    if (!parsed.ok) {
+      toast.error(parsed.error);
+      return;
+    }
+    try {
+      setSavingRoom(true);
+      const res = await fetch(`/api/admin/students/${student.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          room_number: roomInput.trim() === "" ? null : roomInput.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update room");
+      setStudent(data.student);
+      toast.success("Room number updated");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update room");
+    } finally {
+      setSavingRoom(false);
+    }
+  };
+
   return (
     <div className="space-y-6 pb-8">
       {/* Page Header (Back button + Title) */}
@@ -397,8 +432,39 @@ export default function StudentDetailClient({ initialStudent }: StudentDetailCli
             </h2>
             <div className="mt-2 space-y-1 text-sm text-slate-500 dark:text-slate-400 flex flex-wrap gap-x-6 gap-y-2">
               <span className="flex items-center gap-1.5"><strong className="text-slate-700 dark:text-slate-300">Token:</strong> #{student.token_number}</span>
+              <span className="flex items-center gap-1.5"><strong className="text-slate-700 dark:text-slate-300">Room:</strong> {formatRoomDisplay(student.room_number)}</span>
               <span className="flex items-center gap-1.5"><strong className="text-slate-700 dark:text-slate-300">Email:</strong> {student.email}</span>
               <span className="flex items-center gap-1.5"><strong className="text-slate-700 dark:text-slate-300">Joined:</strong> <span suppressHydrationWarning>{format(new Date(student.created_at), "MMM d, yyyy")}</span></span>
+            </div>
+
+            <div className="mt-4 w-full max-w-md">
+              <label htmlFor="admin-student-room" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Assign or edit room number
+              </label>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <input
+                  id="admin-student-room"
+                  type="text"
+                  value={roomInput}
+                  onChange={(e) => setRoomInput(e.target.value)}
+                  maxLength={20}
+                  placeholder="e.g. 201-A"
+                  className="flex-1 min-w-[180px] px-3 py-2 text-sm border border-slate-200 dark:border-[#2A3A2B] rounded-lg bg-white dark:bg-[#182218] text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSaveRoom();
+                  }}
+                  disabled={savingRoom}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:opacity-90 disabled:opacity-50"
+                >
+                  {savingRoom ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  Save room
+                </button>
+              </div>
+              <p className="text-xs text-slate-400 mt-1">Leave empty and save to clear. Letters, numbers, spaces, hyphens only (1–20 characters).</p>
             </div>
             
             <div className="mt-4 flex items-center gap-3">

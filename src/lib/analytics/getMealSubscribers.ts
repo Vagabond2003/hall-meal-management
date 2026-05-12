@@ -12,8 +12,7 @@ interface Student {
   id: string;
   name: string;
   token_number: string;
-  rna_number: string;
-  room_no: string;
+  room_number: string;
   meal_selection_enabled: boolean;
   status: "Active" | "Paused";
   total_meals: number;
@@ -50,7 +49,7 @@ export async function getMealSubscribers(
   // Fetch all approved students
   const { data: students, error: studentsError } = await supabaseAdmin
     .from("users")
-    .select("id, name, token_number, rna_number, is_active, meal_selection_enabled")
+    .select("id, name, token_number, room_number, is_active, meal_selection_enabled")
     .eq("role", "student")
     .eq("is_approved", true)
     .order("name", { ascending: true });
@@ -155,10 +154,11 @@ export async function getMealSubscribers(
 
     return {
       id: student.id,
-      name: student.name || "N/A",
-      token_number: student.token_number || "N/A",
-      rna_number: student.rna_number || "N/A",
-      room_no: "N/A",
+      name: student.name || "—",
+      token_number: student.token_number || "—",
+      room_number: student.room_number?.trim()
+        ? student.room_number.trim()
+        : "—",
       meal_selection_enabled: student.meal_selection_enabled ?? true,
       status: (student.meal_selection_enabled
         ? "Active"

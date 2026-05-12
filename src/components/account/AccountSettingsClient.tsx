@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
+import { formatRoomDisplay } from "@/lib/utils";
 import {
   User,
   Lock,
@@ -61,6 +62,8 @@ export default function AccountSettingsClient({ role }: { role: "admin" | "stude
 
   const [name, setName] = useState("");
   const [originalName, setOriginalName] = useState("");
+  const [roomNumber, setRoomNumber] = useState("");
+  const [originalRoom, setOriginalRoom] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState("");
@@ -84,6 +87,27 @@ export default function AccountSettingsClient({ role }: { role: "admin" | "stude
   }, [session?.user?.name]);
 
   useEffect(() => {
+    if (role !== "student") return;
+    const loadProfile = async () => {
+      try {
+        const res = await fetch("/api/account/profile");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (typeof data.name === "string") {
+          setName(data.name);
+          setOriginalName(data.name);
+        }
+        const r = data.room_number ?? "";
+        setRoomNumber(r);
+        setOriginalRoom(r);
+      } catch {
+        // keep defaults
+      }
+    };
+    loadProfile();
+  }, [role]);
+
+  useEffect(() => {
     const fetchHistory = async () => {
       try {
         setLoadingHistory(true);
@@ -104,20 +128,33 @@ export default function AccountSettingsClient({ role }: { role: "admin" | "stude
     e.preventDefault();
     const trimmed = name.trim();
     if (!trimmed) return toast.error("Name cannot be empty");
-    if (trimmed === originalName) return;
+
+    const roomChanged =
+      role === "student" && roomNumber.trim() !== (originalRoom || "").trim();
+    const nameChanged = trimmed !== originalName;
+    if (!nameChanged && !roomChanged) return;
 
     try {
       setSavingProfile(true);
+      const body: { name: string; room_number?: string | null } = { name: trimmed };
+      if (role === "student") {
+        body.room_number = roomNumber.trim() === "" ? null : roomNumber.trim();
+      }
       const res = await fetch("/api/account/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: trimmed }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to update profile");
 
       setName(data.name);
       setOriginalName(data.name);
+      if (role === "student" && data.room_number !== undefined) {
+        const r = data.room_number ?? "";
+        setRoomNumber(r);
+        setOriginalRoom(r);
+      }
       if (update) {
         await update({ name: data.name });
       } else {
@@ -182,7 +219,10 @@ export default function AccountSettingsClient({ role }: { role: "admin" | "stude
     ? format(new Date(lastLogin), "EEE, MMM d, yyyy 'at' h:mm a")
     : "Not available";
 
-  const canSaveProfile = name.trim().length > 0 && name.trim() !== originalName;
+  const canSaveProfile =
+    name.trim().length > 0 &&
+    (name.trim() !== originalName ||
+      (role === "student" && roomNumber.trim() !== (originalRoom || "").trim()));
 
   const strengthColorMap: Record<number, string> = {
     0: "bg-slate-200",
@@ -256,6 +296,26 @@ export default function AccountSettingsClient({ role }: { role: "admin" | "stude
                 {role === "admin" ? "ADMIN" : "STUDENT"}
               </span>
             </div>
+
+            {role === "student" && (
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Room number
+                </label>
+                <input
+                  type="text"
+                  value={roomNumber}
+                  onChange={(e) => setRoomNumber(e.target.value)}
+                  maxLength={20}
+                  placeholder="Not assigned"
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary bg-slate-50 text-slate-900"
+                />
+                <p className="text-xs text-slate-400 mt-1.5">
+                  Displayed as {formatRoomDisplay(roomNumber)} if left empty. Use
+                  letters, numbers, spaces, and hyphens (1–20 characters).
+                </p>
+              </div>
+            )}
 
             {role === "student" && (
               <div>

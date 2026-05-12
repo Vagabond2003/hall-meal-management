@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
+import { parseOptionalRoomNumber } from "@/lib/roomNumber";
 
 export async function GET(
   request: Request,
@@ -17,7 +18,9 @@ export async function GET(
 
     const { data: student, error } = await supabaseAdmin
       .from("users")
-      .select("id, name, email, token_number, is_approved, is_active, meal_selection_enabled, created_at")
+      .select(
+        "id, name, email, token_number, room_number, is_approved, is_active, meal_selection_enabled, created_at"
+      )
       .eq("id", id)
       .eq("role", "student")
       .single();
@@ -44,14 +47,28 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const allowedKeys = ['name', 'token_number', 'is_approved', 'is_active', 'meal_selection_enabled'];
-    const updatePayload: Record<string, any> = {};
+    const allowedKeys = [
+      "name",
+      "token_number",
+      "room_number",
+      "is_approved",
+      "is_active",
+      "meal_selection_enabled",
+    ];
+    const updatePayload: Record<string, unknown> = {};
 
-    Object.keys(body).forEach(key => {
-      if (allowedKeys.includes(key)) {
-        updatePayload[key] = body[key];
+    for (const key of Object.keys(body)) {
+      if (!allowedKeys.includes(key)) continue;
+      if (key === "room_number") {
+        const parsed = parseOptionalRoomNumber(body[key]);
+        if (!parsed.ok) {
+          return NextResponse.json({ error: parsed.error }, { status: 400 });
+        }
+        updatePayload.room_number = parsed.room;
+        continue;
       }
-    });
+      updatePayload[key] = body[key];
+    }
 
     if (Object.keys(updatePayload).length === 0) {
       return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
@@ -62,7 +79,9 @@ export async function PATCH(
       .update(updatePayload)
       .eq("id", id)
       .eq("role", "student")
-      .select("id, name, email, token_number, is_approved, is_active, meal_selection_enabled, created_at")
+      .select(
+        "id, name, email, token_number, room_number, is_approved, is_active, meal_selection_enabled, created_at"
+      )
       .single();
 
     if (error) throw error;

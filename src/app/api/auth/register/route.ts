@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { supabaseAdmin } from "@/lib/supabase";
+import { isValidRoomNumber } from "@/lib/roomNumber";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { name, email, password, role, token_number, admin_secret_code, inviteCode } = body;
+    const { name, email, password, role, token_number, room_number, admin_secret_code, inviteCode } = body;
 
     // Admin registration path (unchanged)
     if (role === "admin") {
@@ -73,10 +74,20 @@ export async function POST(req: Request) {
       );
     }
 
-    // Student registration path — requires invite code
-    if (!inviteCode || !name || !email || !password || !token_number) {
+    // Student registration path — requires invite code + room number
+    if (!inviteCode || !name || !email || !password || !token_number || room_number === undefined || room_number === null || String(room_number).trim() === "") {
       return NextResponse.json(
         { message: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    if (typeof room_number !== "string" || !isValidRoomNumber(room_number)) {
+      return NextResponse.json(
+        {
+          message:
+            "Room number must be 1–20 characters (letters, numbers, spaces, and hyphens only)",
+        },
         { status: 400 }
       );
     }
@@ -137,6 +148,7 @@ export async function POST(req: Request) {
         email: normalizedEmail,
         password: hashedPassword,
         token_number,
+        room_number: String(room_number).trim(),
         role: "student",
         is_approved: false,
         is_active: true,

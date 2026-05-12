@@ -138,17 +138,16 @@ export async function GET(request: NextRequest) {
     // 4. Fetch student details
     const { data: students, error: userError } = await supabaseAdmin
       .from("users")
-      .select("name, token_number, rna_number")
+      .select("name, token_number, room_number")
       .in("id", matchingStudentIds)
       .order("name", { ascending: true });
 
     if (userError) throw new Error(userError.message);
 
     const formattedStudents = (students || []).map((u: any) => ({
-      name: u.name || "N/A",
-      token_number: u.token_number || "N/A",
-      rna_number: u.rna_number || "N/A",
-      room_no: "N/A",
+      name: u.name || "—",
+      token_number: u.token_number || "—",
+      room_no: u.room_number?.trim() ? u.room_number.trim() : "—",
     }));
 
     return NextResponse.json({

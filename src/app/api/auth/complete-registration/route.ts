@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { supabaseAdmin } from "@/lib/supabase";
+import { isValidRoomNumber } from "@/lib/roomNumber";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { token, name, password, tokenNumber } = body;
+    const { token, name, password, tokenNumber, roomNumber } = body;
 
     if (!token || !name || !password) {
       return NextResponse.json(
@@ -103,12 +104,34 @@ export async function POST(req: Request) {
     // 7. Determine role and approval status based on signup_mode
     const isAdmin = signupMode === "admin";
 
-    // 8. Validate token_number for students
+    // 8. Validate token_number and room_number for students
     if (!isAdmin && !tokenNumber) {
       return NextResponse.json(
         { message: "Token number is required for student accounts" },
         { status: 400 }
       );
+    }
+
+    if (!isAdmin) {
+      if (
+        roomNumber === undefined ||
+        roomNumber === null ||
+        (typeof roomNumber === "string" && roomNumber.trim() === "")
+      ) {
+        return NextResponse.json(
+          { message: "Room number is required" },
+          { status: 400 }
+        );
+      }
+      if (typeof roomNumber !== "string" || !isValidRoomNumber(roomNumber)) {
+        return NextResponse.json(
+          {
+            message:
+              "Room number must be 1–20 characters (letters, numbers, spaces, and hyphens only)",
+          },
+          { status: 400 }
+        );
+      }
     }
 
     // 9. Insert new user
@@ -118,7 +141,12 @@ export async function POST(req: Request) {
         name,
         email: email,
         password: hashedPassword,
-        ...(isAdmin ? {} : { token_number: tokenNumber }),
+        ...(isAdmin
+          ? {}
+          : {
+              token_number: tokenNumber,
+              room_number: String(roomNumber).trim(),
+            }),
         role: isAdmin ? "admin" : "student",
         is_approved: isAdmin ? true : false,
         is_active: true,

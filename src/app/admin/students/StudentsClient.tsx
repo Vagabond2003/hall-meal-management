@@ -20,12 +20,14 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { formatRoomDisplay } from "@/lib/utils";
 
 interface Student {
   id: string;
   name: string;
   email: string;
   token_number: string;
+  room_number: string | null;
   is_approved: boolean;
   is_active: boolean;
   meal_selection_enabled: boolean;
@@ -64,6 +66,9 @@ const StudentRow = React.memo(function StudentRow({
         <span className="font-mono text-sm text-slate-500 font-medium dark:text-slate-400">
           #{student.token_number}
         </span>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300">
+        {formatRoomDisplay(student.room_number)}
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="text-sm font-medium text-slate-900 dark:text-slate-100">{student.name}</div>
@@ -330,6 +335,7 @@ export default function StudentsClient() {
             <thead className="bg-[#F0EFE9] dark:bg-[#1F2B20]">
               <tr>
                 <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider dark:text-slate-300">Token Number</th>
+                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider dark:text-slate-300">Room</th>
                 <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider dark:text-slate-300">Student Name</th>
                 <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider dark:text-slate-300">Status</th>
                 <th scope="col" className="px-6 py-4 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider dark:text-slate-300">Meals</th>
@@ -345,7 +351,7 @@ export default function StudentsClient() {
                 {loading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <motion.tr key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="border-b border-slate-100 dark:border-[#2A3A2B]">
-                      <td colSpan={5} className="px-6 py-4">
+                      <td colSpan={6} className="px-6 py-4">
                         <LoadingSkeleton className="h-10 w-full" />
                       </td>
                     </motion.tr>
@@ -368,7 +374,7 @@ export default function StudentsClient() {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                   >
-                    <td colSpan={5} className="px-6 py-16 text-center">
+                    <td colSpan={6} className="px-6 py-16 text-center">
                       <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-50 dark:bg-slate-800/50">
                         <Users className="h-8 w-8 text-slate-400" />
                       </div>

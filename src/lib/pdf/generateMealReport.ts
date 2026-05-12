@@ -39,12 +39,12 @@ export function generateMealReport(data: {
   // ── TABLE ──────────────────────────────────────
   autoTable(doc, {
     startY: 47,
-    head: [["#", "Student Name", "Token Number", "Room No."]],
+    head: [["#", "Student Name", "Token Number", "Room"]],
     body: data.students.map((s, i) => [
       i + 1,
-      s.name ?? "N/A",
-      s.token_number ?? "N/A",
-      s.room_no ?? "N/A",
+      s.name ?? "—",
+      s.token_number ?? "—",
+      s.room_no ?? "—",
     ]),
     theme: "grid",
     headStyles: {
