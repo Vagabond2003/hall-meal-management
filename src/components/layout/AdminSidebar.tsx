@@ -19,6 +19,7 @@ import {
   Ticket,
   UserCog,
   CreditCard,
+  MessageSquareText,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { Button } from "../ui/button";
@@ -31,6 +32,7 @@ const adminNavigation = [
   { name: "Invite Codes", href: "/admin/invite-codes", icon: Ticket },
   { name: "Weekly Menu", href: "/admin/weekly-menu", icon: Calendar },
   { name: "Meal Count", href: "/admin/meal-attendance", icon: ClipboardList },
+  { name: "Feedback", href: "/admin/feedback", icon: MessageSquareText },
   { name: "Announcements", href: "/admin/announcements", icon: Megaphone },
   { name: "Account Settings", href: "/admin/account-settings", icon: UserCog },
   { name: "Settings", href: "/admin/settings", icon: Settings },

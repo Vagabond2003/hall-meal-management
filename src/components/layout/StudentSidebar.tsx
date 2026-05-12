@@ -4,10 +4,11 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { 
-  LayoutDashboard, 
-  UtensilsCrossed, 
-  History, 
+import {
+  LayoutDashboard,
+  UtensilsCrossed,
+  History,
+  MessageSquare,
   Receipt,
   LogOut,
   Menu,
@@ -22,6 +23,7 @@ const studentNavigation = [
   { name: "Meal Selection", href: "/student/meal-selection", icon: UtensilsCrossed },
   { name: "Dashboard", href: "/student/dashboard", icon: LayoutDashboard },
   { name: "Meal History", href: "/student/history", icon: History },
+  { name: "Meal Feedback", href: "/student/feedback", icon: MessageSquare },
   { name: "Announcements", href: "/student/announcements", icon: Megaphone },
   { name: "Monthly Bill", href: "/student/billing", icon: Receipt },
   { name: "Account Settings", href: "/student/account-settings", icon: UserCog },
