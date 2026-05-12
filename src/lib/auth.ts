@@ -1,7 +1,25 @@
 import { NextAuthOptions, getServerSession, DefaultSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
+import { headers } from "next/headers";
 import { supabaseAdmin } from "./supabase";
+import { createRateLimiter } from "@/lib/rate-limit";
+
+/** Failed credential attempts per IP (10 per 15 minutes). Successful logins do not consume. */
+const failedLoginLimiter = createRateLimiter(10, 15 * 60 * 1000);
+
+async function getRequestIp(): Promise<string> {
+  try {
+    const h = await headers();
+    return (
+      h.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      h.get("x-real-ip") ||
+      "unknown"
+    );
+  } catch {
+    return "unknown";
+  }
+}
 
 
 export async function requireStudent() {
@@ -33,6 +51,14 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Missing credentials");
         }
 
+        const ip = await getRequestIp();
+        const rateLimitFailedAttempt = () => {
+          const result = failedLoginLimiter(ip);
+          if (!result.success) {
+            throw new Error("Too many requests. Please try again later.");
+          }
+        };
+
         // Fetch user from Supabase using the service role client
         const { data: user, error } = await supabaseAdmin
           .from("users")
@@ -41,6 +67,7 @@ export const authOptions: NextAuthOptions = {
           .single();
 
         if (error || !user) {
+          rateLimitFailedAttempt();
           throw new Error("Invalid email or password");
         }
 
@@ -51,6 +78,7 @@ export const authOptions: NextAuthOptions = {
         );
 
         if (!isValidPassword) {
+          rateLimitFailedAttempt();
           throw new Error("Invalid email or password");
         }
 

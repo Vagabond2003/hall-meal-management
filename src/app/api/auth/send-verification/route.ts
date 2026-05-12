@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { createRateLimiter } from "@/lib/rate-limit";
 import nodemailer from "nodemailer";
+
+const sendVerificationLimiter = createRateLimiter(3, 60 * 60 * 1000); // 3 per hour per email
 
 export async function POST(req: Request) {
   try {
@@ -19,6 +22,15 @@ export async function POST(req: Request) {
     const normalizedCode = inviteCode.trim().toUpperCase();
     const normalizedEmail = email.toLowerCase().trim();
     const mode = signupMode === "admin" ? "admin" : "student";
+
+    // Rate limit by email
+    const rateLimit = sendVerificationLimiter(normalizedEmail);
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        { status: 429 }
+      );
+    }
 
     // 3. If admin signup, validate admin secret code
     if (mode === "admin") {

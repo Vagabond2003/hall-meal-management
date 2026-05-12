@@ -20,8 +20,6 @@ import { format } from "date-fns";
 import { StatCard } from "@/components/shared/StatCard";
 import Link from "next/link";
 import { FileText, Table, Loader2 } from "lucide-react";
-import { pdf } from "@react-pdf/renderer";
-import { MonthlyBillSummary } from "@/components/pdf/MonthlyBillSummary";
 import { generateExcelExport } from "@/lib/exportBillingSummary";
 
 
@@ -125,8 +123,15 @@ export default function AdminDashboardClient({
     try {
       setIsExportingPDF(true);
       const data = await fetchBillingData();
-      
-      const blob = await pdf(<MonthlyBillSummary data={data} monthStr={displayMonthYear} />).toBlob();
+
+      const [{ pdf }, { MonthlyBillSummary }] = await Promise.all([
+        import("@react-pdf/renderer"),
+        import("@/components/pdf/MonthlyBillSummary"),
+      ]);
+
+      const blob = await pdf(
+        <MonthlyBillSummary data={data} monthStr={displayMonthYear} />
+      ).toBlob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;

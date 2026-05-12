@@ -50,7 +50,9 @@ export async function GET(request: Request) {
         };
       });
 
-      return NextResponse.json({ announcements: processedAnnouncements });
+      const response = NextResponse.json({ announcements: processedAnnouncements });
+      response.headers.set("Cache-Control", "public, max-age=30, stale-while-revalidate=60");
+      return response;
     } 
     
     // Students need their personal read/like states
@@ -95,7 +97,12 @@ export async function GET(request: Request) {
         };
       });
 
-      return NextResponse.json({ announcements: processedAnnouncements });
+      const response = NextResponse.json({ announcements: processedAnnouncements });
+      response.headers.set(
+        "Cache-Control",
+        "private, max-age=30, stale-while-revalidate=60"
+      );
+      return response;
     }
 
     return NextResponse.json({ error: "Forbidden role" }, { status: 403 });

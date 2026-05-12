@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Loader2, MoreVertical, Eye, Power, CheckCircle, ShieldBan, Filter, Ban, Users, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { LoadingSkeleton } from "@/components/shared/LoadingSkeleton";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useDebounce } from "@/lib/hooks/use-debounce"; 
+import { useDebounce } from "@/lib/hooks/use-debounce";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,6 +34,133 @@ interface Student {
 
 type FilterType = "All" | "Pending" | "Active" | "Deactivated";
 
+type StudentRowProps = {
+  student: Student;
+  rowIndex: number;
+  onRowNavigate: (id: string) => void;
+  onMealToggle: (id: string, currentStatus: boolean) => void;
+  onStatusUpdate: (id: string, action: string) => void;
+  onDeleteClick: (student: Student) => void;
+};
+
+const StudentRow = React.memo(function StudentRow({
+  student,
+  rowIndex,
+  onRowNavigate,
+  onMealToggle,
+  onStatusUpdate,
+  onDeleteClick,
+}: StudentRowProps) {
+  return (
+    <motion.tr
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, transition: { duration: 0.1 } }}
+      transition={{ duration: 0.25, delay: rowIndex * 0.08 }}
+      onClick={() => onRowNavigate(student.id)}
+      className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors dark:border-[#2A3A2B] dark:hover:bg-[#1F2B20] cursor-pointer"
+    >
+      <td className="px-6 py-4 whitespace-nowrap">
+        <span className="font-mono text-sm text-slate-500 font-medium dark:text-slate-400">
+          #{student.token_number}
+        </span>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="text-sm font-medium text-slate-900 dark:text-slate-100">{student.name}</div>
+        <div className="text-sm text-slate-500 dark:text-slate-400">{student.email}</div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        {!student.is_approved ? (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-900/50">
+            Pending
+          </span>
+        ) : student.is_active ? (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[#EAF2EC] text-[#2E7D52] border border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-900/50">
+            Active
+          </span>
+        ) : (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
+            Deactivated
+          </span>
+        )}
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap text-center" onClick={(e) => e.stopPropagation()}>
+        <button
+          type="button"
+          onClick={() => onMealToggle(student.id, student.meal_selection_enabled)}
+          disabled={!student.is_approved}
+          className={`relative inline-flex h-8 w-14 sm:h-6 sm:w-11 items-center flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+            !student.is_approved ? "opacity-50 cursor-not-allowed" : ""
+          } ${
+            student.meal_selection_enabled ? "bg-green-600" : "bg-slate-200 dark:bg-slate-700"
+          }`}
+          role="switch"
+          aria-checked={student.meal_selection_enabled}
+        >
+          <span className="sr-only">Toggle meal selection</span>
+          <span
+            className={`pointer-events-none inline-block h-6 w-6 sm:h-5 sm:w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+              student.meal_selection_enabled ? "translate-x-6 sm:translate-x-5" : "translate-x-0"
+            }`}
+          />
+        </button>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-end gap-3">
+          {!student.is_approved && (
+            <button
+              type="button"
+              onClick={() => onStatusUpdate(student.id, "approve")}
+              className="text-green-600 hover:text-green-900 bg-green-50 p-2 sm:p-1.5 min-h-[44px] sm:min-h-0 rounded-lg transition-colors tooltip tooltip-left flex items-center justify-center"
+              title="Approve"
+            >
+              <CheckCircle className="h-5 w-5 sm:h-4 sm:w-4" />
+            </button>
+          )}
+          {student.is_approved && student.is_active && (
+            <button
+              type="button"
+              onClick={() => onStatusUpdate(student.id, "deactivate")}
+              className="text-amber-600 hover:text-amber-900 bg-amber-50 p-2 sm:p-1.5 min-h-[44px] sm:min-h-0 rounded-lg transition-colors tooltip tooltip-left flex items-center justify-center"
+              title="Deactivate"
+            >
+              <ShieldBan className="h-5 w-5 sm:h-4 sm:w-4" />
+            </button>
+          )}
+          {student.is_approved && !student.is_active && (
+            <button
+              type="button"
+              onClick={() => onStatusUpdate(student.id, "activate")}
+              className="text-green-600 hover:text-green-900 bg-green-50 p-2 sm:p-1.5 min-h-[44px] sm:min-h-0 rounded-lg transition-colors tooltip tooltip-left flex items-center justify-center"
+              title="Reactivate"
+            >
+              <Power className="h-5 w-5 sm:h-4 sm:w-4" />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDeleteClick(student);
+            }}
+            className="text-red-500 hover:text-red-700 bg-red-50 p-2 sm:p-1.5 min-h-[44px] sm:min-h-0 rounded-lg transition-colors border border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30 dark:border-red-900/30 flex items-center justify-center"
+            title="Delete Account"
+          >
+            <Trash2 className="h-5 w-5 sm:h-4 sm:w-4" />
+          </button>
+          <Link
+            href={`/admin/students/${student.id}`}
+            className="text-slate-500 hover:text-primary bg-slate-50 p-2 sm:p-1.5 min-h-[44px] sm:min-h-0 rounded-lg transition-colors dark:bg-slate-800 dark:text-slate-400 dark:hover:text-primary flex items-center justify-center"
+            title="View Profile"
+          >
+            <Eye className="h-5 w-5 sm:h-4 sm:w-4" />
+          </Link>
+        </div>
+      </td>
+    </motion.tr>
+  );
+});
+
 export default function StudentsClient() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,13 +169,9 @@ export default function StudentsClient() {
   const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const router = useRouter();
-  
-  // Custom simple debounce implementation inline to avoid creating extra files if not needed
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearchTerm(searchTerm), 300);
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
+
+  const debouncedSearchTerm = useDebounce(searchTerm, 400);
+  const isSearching = searchTerm !== debouncedSearchTerm;
 
   const fetchStudents = useCallback(async () => {
     try {
@@ -68,22 +191,32 @@ export default function StudentsClient() {
     fetchStudents();
   }, [fetchStudents]);
 
-  const handleStatusUpdate = async (id: string, action: string) => {
-    try {
-      const res = await fetch(`/api/admin/students/${id}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action })
-      });
-      if (!res.ok) throw new Error("Failed to toggle status");
-      toast.success("Student updated successfully");
-      fetchStudents();
-    } catch {
-      toast.error("An error occurred");
-    }
-  };
+  const navigateToStudent = useCallback(
+    (id: string) => {
+      router.push(`/admin/students/${id}`);
+    },
+    [router]
+  );
 
-  const handleMealToggle = async (id: string, currentStatus: boolean) => {
+  const handleStatusUpdate = useCallback(
+    async (id: string, action: string) => {
+      try {
+        const res = await fetch(`/api/admin/students/${id}/status`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action })
+        });
+        if (!res.ok) throw new Error("Failed to toggle status");
+        toast.success("Student updated successfully");
+        fetchStudents();
+      } catch {
+        toast.error("An error occurred");
+      }
+    },
+    [fetchStudents]
+  );
+
+  const handleMealToggle = useCallback(async (id: string, currentStatus: boolean) => {
     // Requires a new action in the API route, let's update it later if missing
     try {
       const res = await fetch(`/api/admin/students/${id}/status`, {
@@ -101,9 +234,13 @@ export default function StudentsClient() {
     } catch {
       toast.error("An error occurred");
     }
-  };
+  }, []);
 
-  const handleDeleteStudent = async (id: string) => {
+  const handleDeleteRequest = useCallback((student: Student) => {
+    setStudentToDelete(student);
+  }, []);
+
+  const handleDeleteStudent = useCallback(async (id: string) => {
     try {
       setIsDeleting(true);
       const res = await fetch(`/api/admin/students/${id}`, {
@@ -122,7 +259,7 @@ export default function StudentsClient() {
     } finally {
       setIsDeleting(false);
     }
-  };
+  }, []);
 
   return (
     <div className="space-y-6 pb-8">
@@ -152,11 +289,16 @@ export default function StudentsClient() {
           </div>
           <input
             type="text"
-            className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl leading-5 bg-white dark:bg-[#182218] dark:border-[#2A3A2B] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-shadow"
+            className={`block w-full pl-10 pr-10 py-2.5 border rounded-xl leading-5 bg-white dark:bg-[#182218] dark:border-[#2A3A2B] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-shadow ${isSearching ? "border-primary/50" : "border-slate-200"}`}
             placeholder="Search by name, email, or Token number..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
+          {isSearching && (
+            <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+              <Loader2 className="h-4 w-4 text-primary animate-spin" />
+            </div>
+          )}
         </div>
 
         <div className="flex bg-white dark:bg-[#182218] p-1 rounded-xl shadow-sm border border-slate-100 dark:border-[#2A3A2B] self-start sm:self-auto shrink-0 overflow-x-auto">
@@ -194,7 +336,11 @@ export default function StudentsClient() {
                 <th scope="col" className="px-6 py-4 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider dark:text-slate-300">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-slate-100 dark:bg-[#182218] dark:divide-[#2A3A2B]">
+            <tbody
+              className={`bg-white divide-y divide-slate-100 dark:bg-[#182218] dark:divide-[#2A3A2B] transition-opacity ${
+                isSearching && !loading ? "opacity-60" : ""
+              }`}
+            >
               <AnimatePresence mode="wait">
                 {loading ? (
                   Array.from({ length: 5 }).map((_, i) => (
@@ -206,108 +352,15 @@ export default function StudentsClient() {
                   ))
                 ) : students.length > 0 ? (
                   students.map((student, i) => (
-                    <motion.tr
+                    <StudentRow
                       key={student.id}
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, transition: { duration: 0.1 } }}
-                      transition={{ duration: 0.25, delay: i * 0.08 }}
-                      onClick={() => router.push(`/admin/students/${student.id}`)}
-                      className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors dark:border-[#2A3A2B] dark:hover:bg-[#1F2B20] cursor-pointer"
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="font-mono text-sm text-slate-500 font-medium dark:text-slate-400">
-                          #{student.token_number}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-slate-900 dark:text-slate-100">{student.name}</div>
-                        <div className="text-sm text-slate-500 dark:text-slate-400">{student.email}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {!student.is_approved ? (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-900/50">
-                            Pending
-                          </span>
-                        ) : student.is_active ? (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[#EAF2EC] text-[#2E7D52] border border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-900/50">
-                            Active
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
-                            Deactivated
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          onClick={() => handleMealToggle(student.id, student.meal_selection_enabled)}
-                          disabled={!student.is_approved}
-                          className={`relative inline-flex h-8 w-14 sm:h-6 sm:w-11 items-center flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
-                            !student.is_approved ? 'opacity-50 cursor-not-allowed' : ''
-                          } ${
-                            student.meal_selection_enabled ? 'bg-green-600' : 'bg-slate-200 dark:bg-slate-700'
-                          }`}
-                          role="switch"
-                          aria-checked={student.meal_selection_enabled}
-                        >
-                          <span className="sr-only">Toggle meal selection</span>
-                          <span
-                            className={`pointer-events-none inline-block h-6 w-6 sm:h-5 sm:w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                              student.meal_selection_enabled ? 'translate-x-6 sm:translate-x-5' : 'translate-x-0'
-                            }`}
-                          />
-                        </button>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-end gap-3">
-                          {!student.is_approved && (
-                            <button 
-                              onClick={() => handleStatusUpdate(student.id, 'approve')}
-                              className="text-green-600 hover:text-green-900 bg-green-50 p-2 sm:p-1.5 min-h-[44px] sm:min-h-0 rounded-lg transition-colors tooltip tooltip-left flex items-center justify-center"
-                              title="Approve"
-                            >
-                              <CheckCircle className="h-5 w-5 sm:h-4 sm:w-4" />
-                            </button>
-                          )}
-                          {student.is_approved && student.is_active && (
-                            <button 
-                              onClick={() => handleStatusUpdate(student.id, 'deactivate')}
-                              className="text-amber-600 hover:text-amber-900 bg-amber-50 p-2 sm:p-1.5 min-h-[44px] sm:min-h-0 rounded-lg transition-colors tooltip tooltip-left flex items-center justify-center"
-                              title="Deactivate"
-                            >
-                              <ShieldBan className="h-5 w-5 sm:h-4 sm:w-4" />
-                            </button>
-                          )}
-                          {student.is_approved && !student.is_active && (
-                            <button 
-                              onClick={() => handleStatusUpdate(student.id, 'activate')}
-                              className="text-green-600 hover:text-green-900 bg-green-50 p-2 sm:p-1.5 min-h-[44px] sm:min-h-0 rounded-lg transition-colors tooltip tooltip-left flex items-center justify-center"
-                              title="Reactivate"
-                            >
-                              <Power className="h-5 w-5 sm:h-4 sm:w-4" />
-                            </button>
-                          )}
-                            <button 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setStudentToDelete(student);
-                              }}
-                              className="text-red-500 hover:text-red-700 bg-red-50 p-2 sm:p-1.5 min-h-[44px] sm:min-h-0 rounded-lg transition-colors border border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30 dark:border-red-900/30 flex items-center justify-center"
-                              title="Delete Account"
-                            >
-                              <Trash2 className="h-5 w-5 sm:h-4 sm:w-4" />
-                            </button>
-                            <Link 
-                              href={`/admin/students/${student.id}`} 
-                              className="text-slate-500 hover:text-primary bg-slate-50 p-2 sm:p-1.5 min-h-[44px] sm:min-h-0 rounded-lg transition-colors dark:bg-slate-800 dark:text-slate-400 dark:hover:text-primary flex items-center justify-center"
-                              title="View Profile"
-                            >
-                              <Eye className="h-5 w-5 sm:h-4 sm:w-4" />
-                            </Link>
-                        </div>
-                      </td>
-                    </motion.tr>
+                      student={student}
+                      rowIndex={i}
+                      onRowNavigate={navigateToStudent}
+                      onMealToggle={handleMealToggle}
+                      onStatusUpdate={handleStatusUpdate}
+                      onDeleteClick={handleDeleteRequest}
+                    />
                   ))
                 ) : (
                   <motion.tr

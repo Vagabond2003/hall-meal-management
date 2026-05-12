@@ -171,7 +171,7 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       stats: {
         totalMeals,
         totalRevenue,
@@ -184,6 +184,8 @@ export async function GET(request: NextRequest) {
       monthlyRevenue,
       studentGrowth
     });
+    response.headers.set("Cache-Control", "public, max-age=30, stale-while-revalidate=60");
+    return response;
 
   } catch (error: any) {
     return NextResponse.json({ error: error.message || "Failed to fetch analytics" }, { status: 500 });

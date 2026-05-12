@@ -22,7 +22,9 @@ export async function GET() {
       return new NextResponse("Error fetching count", { status: 500 });
     }
 
-    return NextResponse.json({ pendingCount: count ?? 0 });
+    const response = NextResponse.json({ pendingCount: count ?? 0 });
+    response.headers.set("Cache-Control", "public, max-age=30, stale-while-revalidate=60");
+    return response;
   } catch (error) {
     console.error("Exception in pending-approvals route:", error);
     return new NextResponse("Internal Server Error", { status: 500 });

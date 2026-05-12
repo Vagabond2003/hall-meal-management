@@ -16,7 +16,9 @@ export async function GET() {
       .order("display_order", { ascending: true });
 
     if (error) throw error;
-    return NextResponse.json({ slots });
+    const response = NextResponse.json({ slots });
+    response.headers.set("Cache-Control", "public, max-age=30, stale-while-revalidate=60");
+    return response;
   } catch (error) {
     console.error("GET /api/admin/meal-slots error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

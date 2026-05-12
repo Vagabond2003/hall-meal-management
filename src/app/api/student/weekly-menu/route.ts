@@ -80,8 +80,7 @@ export async function GET(request: NextRequest) {
   // Sort by date then slot (optional, but good for consistent UI)
   finalMenus.sort((a, b) => a.date.localeCompare(b.date));
 
-  return NextResponse.json(
-    { menus: finalMenus, slots: slotsResult.data }, 
-    { headers: { "Cache-Control": "no-store, max-age=0, private" } }
-  );
+  const response = NextResponse.json({ menus: finalMenus, slots: slotsResult.data });
+  response.headers.set("Cache-Control", "public, max-age=30, stale-while-revalidate=60");
+  return response;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { StatCard } from "@/components/shared/StatCard";
@@ -14,19 +15,51 @@ import {
   DollarSign,
   CalendarDays
 } from "lucide-react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  AreaChart,
-  Area
-} from "recharts";
+
+const ResponsiveContainer = dynamic(
+  () => import("recharts").then((m) => ({ default: m.ResponsiveContainer })),
+  { ssr: false }
+);
+const BarChart = dynamic(
+  () => import("recharts").then((m) => ({ default: m.BarChart })),
+  { ssr: false }
+);
+const Bar = dynamic(
+  () => import("recharts").then((m) => ({ default: m.Bar })),
+  { ssr: false }
+);
+const XAxis = dynamic(
+  () => import("recharts").then((m) => ({ default: m.XAxis })),
+  { ssr: false }
+);
+const YAxis = dynamic(
+  () => import("recharts").then((m) => ({ default: m.YAxis })),
+  { ssr: false }
+);
+const CartesianGrid = dynamic(
+  () => import("recharts").then((m) => ({ default: m.CartesianGrid })),
+  { ssr: false }
+);
+const Tooltip = dynamic(
+  () => import("recharts").then((m) => ({ default: m.Tooltip })),
+  { ssr: false }
+);
+const LineChart = dynamic(
+  () => import("recharts").then((m) => ({ default: m.LineChart })),
+  { ssr: false }
+);
+const Line = dynamic(
+  () => import("recharts").then((m) => ({ default: m.Line })),
+  { ssr: false }
+);
+const AreaChart = dynamic(
+  () => import("recharts").then((m) => ({ default: m.AreaChart })),
+  { ssr: false }
+);
+const Area = dynamic(
+  () => import("recharts").then((m) => ({ default: m.Area })),
+  { ssr: false }
+);
 
 type AnalyticsData = {
   stats: {

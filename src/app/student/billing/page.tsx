@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Receipt, XCircle, CheckCircle, TrendingDown, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { pdf } from "@react-pdf/renderer";
-import { StudentMonthlyBill } from "@/components/pdf/StudentMonthlyBill";
 
 const MONTH_NAMES = [
   "January","February","March","April","May","June",
@@ -45,6 +43,11 @@ export default function BillingSummaryPage() {
 
       const monthName = MONTH_NAMES[record.month - 1];
       const monthStr = `${monthName} ${record.year}`;
+
+      const [{ pdf }, { StudentMonthlyBill }] = await Promise.all([
+        import("@react-pdf/renderer"),
+        import("@/components/pdf/StudentMonthlyBill"),
+      ]);
 
       const blob = await pdf(
         <StudentMonthlyBill

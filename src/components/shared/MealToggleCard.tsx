@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useRef } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Star } from "lucide-react";
@@ -31,7 +31,6 @@ export function MealToggleCard({
   isSpecial = false,
   onToggle,
 }: MealToggleCardProps) {
-  const [loading, setLoading] = useState(false);
   const inFlightRef = useRef(false);
 
   const handleToggle = async () => {
@@ -39,9 +38,7 @@ export function MealToggleCard({
 
     const newState = !isSelected;
     inFlightRef.current = true;
-    setLoading(true);
 
-    // Optimistic UI update — toggle instantly
     onToggle?.(mealId, newState);
 
     try {
@@ -70,7 +67,6 @@ export function MealToggleCard({
       onToggle?.(mealId, !newState);
     } finally {
       inFlightRef.current = false;
-      setLoading(false);
     }
   };
 
@@ -134,7 +130,6 @@ export function MealToggleCard({
       <div
         className={cn(
           "flex-shrink-0 relative w-12 h-6 rounded-full transition-colors duration-250",
-          loading ? "opacity-60" : "",
           isSelected
             ? isSpecial ? "bg-accent-gold" : "bg-primary"
             : "bg-border"

@@ -22,7 +22,12 @@ export async function GET() {
     if (error && error.code !== 'PGRST116') throw error; // PGRST116 is 'not found'
 
     // If no settings row exists yet, return default empty object
-    return NextResponse.json({ settings: data || null });
+    const res = NextResponse.json({ settings: data || null });
+    res.headers.set(
+      "Cache-Control",
+      "private, max-age=30, stale-while-revalidate=60"
+    );
+    return res;
   } catch (error) {
     console.error("Fetch settings error:", error);
     return NextResponse.json({ error: "Failed to fetch settings" }, { status: 500 });

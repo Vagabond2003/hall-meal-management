@@ -69,7 +69,9 @@ export default function SignupPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        toast.error(data.message || "Failed to send verification link.");
+        toast.error(
+          data.message || data.error || "Failed to send verification link."
+        );
         setIsLoading(false);
         return;
       }

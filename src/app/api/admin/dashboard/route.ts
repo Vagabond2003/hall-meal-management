@@ -17,56 +17,26 @@ export async function GET() {
     const currentMonth = today.getMonth() + 1;
     const currentYear = today.getFullYear();
 
-    // Fetch Total Students
-    const { count: totalStudents } = await supabaseAdmin
-      .from("users")
-      .select("*", { count: "exact", head: true })
-      .eq("role", "student");
-
-    // Fetch Pending Approvals
-    const { count: pendingApprovalsCount } = await supabaseAdmin
-      .from("users")
-      .select("*", { count: "exact", head: true })
-      .eq("role", "student")
-      .eq("is_approved", false);
-
-    // Fetch Active Meals
-    const { count: activeMeals } = await supabaseAdmin
-      .from("meals")
-      .select("*", { count: "exact", head: true })
-      .eq("is_active", true);
-
-    // Fetch This Month Revenue
-    const { data: billingData } = await supabaseAdmin
-      .from("monthly_billing")
-      .select("total_cost")
-      .eq("month", currentMonth)
-      .eq("year", currentYear);
+    // Parallelize independent queries
+    const [
+      { count: totalStudents },
+      { count: pendingApprovalsCount },
+      { count: activeMeals },
+      { data: billingData },
+      { data: pendingApprovalsList },
+      { data: recentStudents },
+      { data: recentMeals }
+    ] = await Promise.all([
+      supabaseAdmin.from("users").select("*", { count: "exact", head: true }).eq("role", "student"),
+      supabaseAdmin.from("users").select("*", { count: "exact", head: true }).eq("role", "student").eq("is_approved", false),
+      supabaseAdmin.from("meals").select("*", { count: "exact", head: true }).eq("is_active", true),
+      supabaseAdmin.from("monthly_billing").select("total_cost").eq("month", currentMonth).eq("year", currentYear),
+      supabaseAdmin.from("users").select("id, name, email, token_number, created_at").eq("role", "student").eq("is_approved", false).order("created_at", { ascending: false }).limit(5),
+      supabaseAdmin.from("users").select("id, name, created_at").eq("role", "student").order("created_at", { ascending: false }).limit(5),
+      supabaseAdmin.from("meals").select("id, name, created_at").order("created_at", { ascending: false }).limit(5)
+    ]);
 
     const thisMonthRevenue = billingData?.reduce((acc, curr) => acc + Number(curr.total_cost || 0), 0) || 0;
-
-    // Fetch Pending Approvals List
-    const { data: pendingApprovalsList } = await supabaseAdmin
-      .from("users")
-      .select("id, name, email, token_number, created_at")
-      .eq("role", "student")
-      .eq("is_approved", false)
-      .order("created_at", { ascending: false })
-      .limit(5);
-
-    // Fetch Recent Activity (simulated by combining recent students and meals)
-    const { data: recentStudents } = await supabaseAdmin
-      .from("users")
-      .select("id, name, created_at")
-      .eq("role", "student")
-      .order("created_at", { ascending: false })
-      .limit(5);
-
-    const { data: recentMeals } = await supabaseAdmin
-      .from("meals")
-      .select("id, name, created_at")
-      .order("created_at", { ascending: false })
-      .limit(5);
 
     const activities = [
       ...(recentStudents || []).map(s => ({
@@ -83,7 +53,7 @@ export async function GET() {
       }))
     ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 8);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       metrics: {
         totalStudents: totalStudents || 0,
         pendingApprovals: pendingApprovalsCount || 0,
@@ -93,6 +63,8 @@ export async function GET() {
       pendingApprovalsList: pendingApprovalsList || [],
       activities
     });
+    response.headers.set("Cache-Control", "public, max-age=30, stale-while-revalidate=60");
+    return response;
   } catch {
     return NextResponse.json(
       { error: "Failed to fetch dashboard data" },

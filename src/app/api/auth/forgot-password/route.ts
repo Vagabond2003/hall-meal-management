@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { createRateLimiter } from "@/lib/rate-limit";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
+
+const forgotPasswordLimiter = createRateLimiter(3, 60 * 60 * 1000); // 3 per hour per email
 
 const transporter = nodemailer.createTransport({
   host: "smtp-relay.brevo.com",
@@ -18,6 +21,15 @@ export async function POST(request: Request) {
 
   if (!email) {
     return NextResponse.json({ error: "Email is required" }, { status: 400 });
+  }
+
+  const normalizedEmail = email.toLowerCase().trim();
+  const rateLimit = forgotPasswordLimiter(normalizedEmail);
+  if (!rateLimit.success) {
+    return NextResponse.json(
+      { error: "Too many requests. Please try again later." },
+      { status: 429 }
+    );
   }
 
   try {

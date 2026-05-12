@@ -23,7 +23,12 @@ export async function GET() {
     );
   }
 
-  return NextResponse.json({
+  const res = NextResponse.json({
     deadline: data?.meal_selection_deadline ?? "22:00:00",
   });
+  res.headers.set(
+    "Cache-Control",
+    "private, max-age=30, stale-while-revalidate=60"
+  );
+  return res;
 }

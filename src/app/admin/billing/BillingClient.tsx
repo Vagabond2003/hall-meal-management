@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Users,
   CheckCircle,
   XCircle,
   Banknote,
-  AlertCircle,
   Search,
   Loader2,
   CreditCard,
@@ -15,6 +14,7 @@ import {
   ArrowUpDown,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useDebounce } from "@/lib/hooks/use-debounce";
 import { LoadingSkeleton } from "@/components/shared/LoadingSkeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { StatCard } from "@/components/shared/StatCard";
@@ -35,7 +35,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import * as XLSX from "xlsx";
 
 const MONTH_NAMES = [
   "January",
@@ -67,6 +66,99 @@ interface BillingRecord {
   token_number: string;
 }
 
+type BillingRowProps = {
+  record: BillingRecord;
+  index: number;
+  isSelected: boolean;
+  isUpdating: boolean;
+  onSelectRow: (id: string, checked: boolean) => void;
+  onTogglePaid: (record: BillingRecord) => void;
+};
+
+const BillingRow = React.memo(function BillingRow({
+  record,
+  index,
+  isSelected,
+  isUpdating,
+  onSelectRow,
+  onTogglePaid,
+}: BillingRowProps) {
+  return (
+    <motion.tr
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, transition: { duration: 0.1 } }}
+      transition={{ duration: 0.2, delay: index * 0.04 }}
+      className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors dark:border-[#2A3A2B] dark:hover:bg-[#1F2B20]"
+    >
+      <td className="px-6 py-4">
+        <input
+          type="checkbox"
+          className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary cursor-pointer"
+          checked={isSelected}
+          onChange={(e) => onSelectRow(record.id, e.target.checked)}
+        />
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
+          {record.name}
+        </div>
+        <div className="text-sm text-slate-500 dark:text-slate-400">
+          {record.email}
+        </div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <span className="font-mono text-sm text-slate-500 dark:text-slate-400">
+          #{record.token_number}
+        </span>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+          ৳{Number(record.total_cost).toLocaleString("en-BD", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
+        </span>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        {record.is_paid ? (
+          <span className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 px-2.5 py-1 rounded-full">
+            <CheckCircle className="w-3 h-3" /> PAID
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 px-2.5 py-1 rounded-full">
+            <XCircle className="w-3 h-3" /> UNPAID
+          </span>
+        )}
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+        <button
+          type="button"
+          onClick={() => onTogglePaid(record)}
+          disabled={isUpdating}
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
+            record.is_paid
+              ? "border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-[#2A3A2B] dark:text-slate-300 dark:hover:bg-[#1F2B20]"
+              : "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-900/50 dark:text-emerald-400 dark:hover:bg-emerald-900/20"
+          }`}
+        >
+          {isUpdating ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : record.is_paid ? (
+            <>
+              <ArrowUpDown className="w-3.5 h-3.5" /> Mark Unpaid
+            </>
+          ) : (
+            <>
+              <CheckCircle className="w-3.5 h-3.5" /> Mark Paid
+            </>
+          )}
+        </button>
+      </td>
+    </motion.tr>
+  );
+});
+
 export default function BillingClient() {
   const [billing, setBilling] = useState<BillingRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,6 +166,8 @@ export default function BillingClient() {
   const [year, setYear] = useState<number>(new Date().getFullYear());
   const [status, setStatus] = useState<StatusFilter>("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, 400);
+  const isSearching = searchTerm !== debouncedSearchTerm;
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
@@ -90,7 +184,7 @@ export default function BillingClient() {
     try {
       setLoading(true);
       const res = await fetch(
-        `/api/admin/billing?month=${month}&year=${year}&status=${status}&q=${encodeURIComponent(searchTerm)}`
+        `/api/admin/billing?month=${month}&year=${year}&status=${status}&q=${encodeURIComponent(debouncedSearchTerm)}`
       );
       if (!res.ok) throw new Error("Failed to fetch billing");
       const data = await res.json();
@@ -100,7 +194,7 @@ export default function BillingClient() {
     } finally {
       setLoading(false);
     }
-  }, [month, year, status, searchTerm]);
+  }, [month, year, status, debouncedSearchTerm]);
 
   useEffect(() => {
     fetchBilling();
@@ -124,7 +218,7 @@ export default function BillingClient() {
     return { totalStudents, paidCount, unpaidCount, totalCollected, totalPending };
   }, [billing]);
 
-  const handleTogglePaid = async (record: BillingRecord) => {
+  const handleTogglePaid = useCallback(async (record: BillingRecord) => {
     try {
       setUpdatingId(record.id);
       const newStatus = !record.is_paid;
@@ -157,7 +251,7 @@ export default function BillingClient() {
     } finally {
       setUpdatingId(null);
     }
-  };
+  }, []);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -167,14 +261,14 @@ export default function BillingClient() {
     }
   };
 
-  const handleSelectRow = (id: string, checked: boolean) => {
+  const handleSelectRow = useCallback((id: string, checked: boolean) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (checked) next.add(id);
       else next.delete(id);
       return next;
     });
-  };
+  }, []);
 
   const openBulkDialog = (action: "paid" | "unpaid") => {
     setBulkAction(action);
@@ -212,15 +306,16 @@ export default function BillingClient() {
     }
   };
 
-  const handleExportUnpaid = () => {
+  const handleExportUnpaid = async () => {
     try {
       setExportLoading(true);
       const unpaid = billing.filter((b) => !b.is_paid);
       if (unpaid.length === 0) {
         toast.error("No unpaid students to export.");
-        setExportLoading(false);
         return;
       }
+
+      const XLSX = await import("xlsx");
 
       const rows = [
         ["Token Number", "Name", "Email", "Total Bill (৳)", "Month", "Year"],
@@ -371,11 +466,16 @@ export default function BillingClient() {
             </div>
             <input
               type="text"
-              className="block w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl leading-5 bg-white dark:bg-[#182218] dark:border-[#2A3A2B] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-shadow"
+              className={`block w-full pl-9 pr-9 py-2 border rounded-xl leading-5 bg-white dark:bg-[#182218] dark:border-[#2A3A2B] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-shadow ${isSearching ? "border-primary/50" : "border-slate-200"}`}
               placeholder="Search by name or token..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
+            {isSearching && (
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                <Loader2 className="h-4 w-4 text-primary animate-spin" />
+              </div>
+            )}
           </div>
 
           {/* Export */}
@@ -473,80 +573,15 @@ export default function BillingClient() {
                   </tr>
                 ) : (
                   billing.map((record, i) => (
-                    <motion.tr
+                    <BillingRow
                       key={record.id}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, transition: { duration: 0.1 } }}
-                      transition={{ duration: 0.2, delay: i * 0.04 }}
-                      className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors dark:border-[#2A3A2B] dark:hover:bg-[#1F2B20]"
-                    >
-                      <td className="px-6 py-4">
-                        <input
-                          type="checkbox"
-                          className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary cursor-pointer"
-                          checked={selectedIds.has(record.id)}
-                          onChange={(e) =>
-                            handleSelectRow(record.id, e.target.checked)
-                          }
-                        />
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                          {record.name}
-                        </div>
-                        <div className="text-sm text-slate-500 dark:text-slate-400">
-                          {record.email}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="font-mono text-sm text-slate-500 dark:text-slate-400">
-                          #{record.token_number}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                          ৳{Number(record.total_cost).toLocaleString("en-BD", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {record.is_paid ? (
-                          <span className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 px-2.5 py-1 rounded-full">
-                            <CheckCircle className="w-3 h-3" /> PAID
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 px-2.5 py-1 rounded-full">
-                            <XCircle className="w-3 h-3" /> UNPAID
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          onClick={() => handleTogglePaid(record)}
-                          disabled={updatingId === record.id}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
-                            record.is_paid
-                              ? "border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-[#2A3A2B] dark:text-slate-300 dark:hover:bg-[#1F2B20]"
-                              : "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-900/50 dark:text-emerald-400 dark:hover:bg-emerald-900/20"
-                          }`}
-                        >
-                          {updatingId === record.id ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : record.is_paid ? (
-                            <>
-                              <ArrowUpDown className="w-3.5 h-3.5" /> Mark Unpaid
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle className="w-3.5 h-3.5" /> Mark Paid
-                            </>
-                          )}
-                        </button>
-                      </td>
-                    </motion.tr>
+                      record={record}
+                      index={i}
+                      isSelected={selectedIds.has(record.id)}
+                      isUpdating={updatingId === record.id}
+                      onSelectRow={handleSelectRow}
+                      onTogglePaid={handleTogglePaid}
+                    />
                   ))
                 )}
               </AnimatePresence>

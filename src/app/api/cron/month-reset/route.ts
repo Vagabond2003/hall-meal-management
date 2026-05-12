@@ -22,27 +22,39 @@ export async function POST(request: Request) {
       
     if (resetError) throw resetError;
 
-    // Create empty MonthlyBilling records for all active students for the new month
-    const { data: students } = await supabaseAdmin
-      .from("users")
-      .select("id")
-      .eq("role", "student")
-      .eq("is_active", true);
+    // Create empty MonthlyBilling records for all active students for the new month (batched)
+    const BATCH_SIZE = 100;
+    let from = 0;
+    let batchNum = 0;
+    while (true) {
+      const { data: students, error: fetchErr } = await supabaseAdmin
+        .from("users")
+        .select("id")
+        .eq("role", "student")
+        .eq("is_active", true)
+        .range(from, from + BATCH_SIZE - 1);
 
-    if (students && students.length > 0) {
-      const billingRecords = students.map(s => ({
+      if (fetchErr) throw fetchErr;
+      if (!students?.length) break;
+
+      batchNum += 1;
+      const billingRecords = students.map((s) => ({
         student_id: s.id,
         month: currentMonth,
         year: currentYear,
         total_cost: 0,
-        is_paid: false
+        is_paid: false,
       }));
 
       const { error: billingErr } = await supabaseAdmin
         .from("monthly_billing")
         .upsert(billingRecords, { onConflict: "student_id,month,year" });
-        
+
       if (billingErr) throw billingErr;
+      console.log(`[month-reset] Upserted billing batch ${batchNum} (${students.length} students)`);
+
+      if (students.length < BATCH_SIZE) break;
+      from += BATCH_SIZE;
     }
 
     return NextResponse.json({ success: true, message: "Month reset completed successfully" });
